@@ -1,0 +1,226 @@
+import SwiftUI
+
+struct MusicPlayerView: View {
+    @ObservedObject var music: MusicService
+    @State private var draggedPosition: Double?
+    @State private var draggedVolume: Double?
+
+    var body: some View {
+        HStack(spacing: 14) {
+            AlbumArtworkView(artwork: music.artwork, cornerRadius: 12)
+                .frame(width: 82, height: 82)
+                .shadow(color: .black.opacity(0.45), radius: 10, y: 5)
+
+            if let track = music.track {
+                playerDetails(track)
+            } else {
+                emptyState
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.top, 8)
+    }
+
+    private func playerDetails(_ track: MusicTrack) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(track.title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Text(metadata(for: track))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color.notchMuted)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 6)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
+                        .frame(width: 5, height: 5)
+                    Text(music.isPlaying ? "Playing" : "Paused")
+                }
+                .font(.system(size: 8.5, weight: .semibold))
+                .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 7) {
+                Text(MusicService.formattedTime(activePosition))
+                    .frame(width: 28, alignment: .leading)
+                Slider(
+                    value: Binding(
+                        get: { activePosition },
+                        set: { draggedPosition = $0 }
+                    ),
+                    in: 0...max(track.duration, 1),
+                    onEditingChanged: { editing in
+                        guard !editing, let draggedPosition else { return }
+                        music.seek(to: draggedPosition)
+                        self.draggedPosition = nil
+                    }
+                )
+                .tint(Color.musicAccent)
+                Text("−" + MusicService.formattedTime(max(0, track.duration - activePosition)))
+                    .frame(width: 36, alignment: .trailing)
+            }
+            .font(.system(size: 8, weight: .medium, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Color.notchMuted)
+
+            HStack(spacing: 12) {
+                PlayerControlButton(icon: "backward.fill", size: 25, action: music.previousTrack)
+                Button(action: music.togglePlayback) {
+                    Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(.white))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help(music.isPlaying ? "Pause" : "Play")
+
+                PlayerControlButton(icon: "forward.fill", size: 25, action: music.nextTrack)
+
+                Spacer(minLength: 12)
+
+                Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.notchMuted)
+                Slider(
+                    value: Binding(
+                        get: { activeVolume },
+                        set: { draggedVolume = $0 }
+                    ),
+                    in: 0...1,
+                    onEditingChanged: { editing in
+                        guard !editing, let draggedVolume else { return }
+                        music.setVolume(draggedVolume)
+                        self.draggedVolume = nil
+                    }
+                )
+                .tint(.white.opacity(0.82))
+                .frame(width: 88)
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(music.automationDenied ? "Music access is off" : "Nothing playing")
+                .font(.system(size: 14, weight: .semibold))
+            Text(
+                music.automationDenied
+                    ? "Allow Virtual Notch to control Music in System Settings → Privacy & Security → Automation."
+                    : "Play a song in Apple Music and its artwork and controls will appear here."
+            )
+            .font(.system(size: 10))
+            .foregroundStyle(Color.notchMuted)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: music.openMusic) {
+                HStack(spacing: 6) {
+                    Image(systemName: "music.note")
+                    Text("Open Music")
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .frame(height: 27)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.musicAccent)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: 310, alignment: .leading)
+    }
+
+    private var activePosition: Double {
+        draggedPosition ?? music.position
+    }
+
+    private var activeVolume: Double {
+        draggedVolume ?? music.volume
+    }
+
+    private func metadata(for track: MusicTrack) -> String {
+        [track.artist, track.album]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+}
+
+struct AlbumArtworkView: View {
+    let artwork: NSImage?
+    var cornerRadius: CGFloat = 10
+
+    var body: some View {
+        Group {
+            if let artwork {
+                Image(nsImage: artwork)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                ZStack {
+                    Color(red: 0.12, green: 0.12, blue: 0.14)
+                    Image(systemName: "music.note")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.46))
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(Color.white.opacity(0.1), lineWidth: 0.7)
+        )
+    }
+}
+
+struct AudioWaveform: View {
+    let isPlaying: Bool
+    var barCount = 6
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.1, paused: !isPlaying)) { context in
+            HStack(spacing: 1.5) {
+                ForEach(0..<barCount, id: \.self) { index in
+                    Capsule()
+                        .fill(Color.white.opacity(isPlaying ? 0.92 : 0.46))
+                        .frame(width: 2, height: barHeight(index, at: context.date))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .accessibilityLabel(isPlaying ? "Music playing" : "Music paused")
+    }
+
+    private func barHeight(_ index: Int, at date: Date) -> CGFloat {
+        guard isPlaying else { return CGFloat([3, 5, 4, 6, 4, 3][index % 6]) }
+        let time = date.timeIntervalSinceReferenceDate
+        let wave = abs(sin(time * (3.2 + Double(index) * 0.22) + Double(index) * 0.9))
+        return 2.5 + CGFloat(wave) * 6.5
+    }
+}
+
+private struct PlayerControlButton: View {
+    let icon: String
+    let size: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.86))
+                .frame(width: size, height: size)
+                .background(Circle().fill(Color.white.opacity(0.08)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}

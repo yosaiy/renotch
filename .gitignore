@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+dist/
+.firecrawl/
+graphify-out/
+.DS_Store
+*.xcuserstate
