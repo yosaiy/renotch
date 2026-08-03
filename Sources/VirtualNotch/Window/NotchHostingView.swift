@@ -1,6 +1,19 @@
 import AppKit
 import SwiftUI
 
+private enum NotchDropTypes {
+    static let promisedFiles = NSFilePromiseReceiver.readableDraggedTypes.map {
+        NSPasteboard.PasteboardType($0)
+    }
+    static let images: [NSPasteboard.PasteboardType] = [
+        .png,
+        .tiff,
+        NSPasteboard.PasteboardType("public.jpeg"),
+        NSPasteboard.PasteboardType("public.heic")
+    ]
+    static let all = [.fileURL] + promisedFiles + images
+}
+
 /// AppKit owns drag routing for non-activating panels. Registering the hosting
 /// view directly makes Finder file drags reliable even when SwiftUI's typed
 /// drop destination is not activated for the panel.
@@ -8,9 +21,25 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
     var onFileDragTargetChanged: ((Bool) -> Void)?
     var onFileDrop: (([URL]) -> Bool)?
 
+    private let filePromiseQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "VirtualNotch.FilePromises"
+        queue.maxConcurrentOperationCount = 2
+        return queue
+    }()
+    private let materializedDropDirectory: URL
+    private var dragExitWorkItem: DispatchWorkItem?
+
     required init(rootView: Content) {
+        materializedDropDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VirtualNotchDrops", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         super.init(rootView: rootView)
-        registerForDraggedTypes([.fileURL])
+        try? FileManager.default.createDirectory(
+            at: materializedDropDirectory,
+            withIntermediateDirectories: true
+        )
+        registerForDraggedTypes(NotchDropTypes.all)
     }
 
     @available(*, unavailable)
@@ -19,39 +48,77 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard !fileURLs(from: sender.draggingPasteboard).isEmpty else { return [] }
-        onFileDragTargetChanged?(true)
+        guard supportsDrop(from: sender.draggingPasteboard) else { return [] }
+        activateDropTarget()
         return .copy
     }
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        guard !fileURLs(from: sender.draggingPasteboard).isEmpty else { return [] }
-        onFileDragTargetChanged?(true)
+        guard supportsDrop(from: sender.draggingPasteboard) else { return [] }
+        activateDropTarget()
         return .copy
     }
 
     override func draggingExited(_ sender: NSDraggingInfo?) {
-        onFileDragTargetChanged?(false)
+        if let sender {
+            let location = convert(sender.draggingLocation, from: nil)
+            if bounds.insetBy(dx: -2, dy: -2).contains(location) {
+                return
+            }
+        }
+        scheduleDropTargetExit()
     }
 
     override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        !fileURLs(from: sender.draggingPasteboard).isEmpty
+        let supported = supportsDrop(from: sender.draggingPasteboard)
+        if supported { activateDropTarget() }
+        return supported
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        let urls = fileURLs(from: sender.draggingPasteboard)
-        guard !urls.isEmpty else {
+        dragExitWorkItem?.cancel()
+        let pasteboard = sender.draggingPasteboard
+
+        let urls = fileURLs(from: pasteboard)
+        if !urls.isEmpty {
+            let accepted = onFileDrop?(urls) ?? false
             onFileDragTargetChanged?(false)
-            return false
+            return accepted
         }
 
-        let accepted = onFileDrop?(urls) ?? false
+        if receivePromisedFiles(from: pasteboard) {
+            onFileDragTargetChanged?(false)
+            return true
+        }
+
+        if let imageURL = materializeImage(from: pasteboard) {
+            let accepted = onFileDrop?([imageURL]) ?? false
+            onFileDragTargetChanged?(false)
+            return accepted
+        }
+
         onFileDragTargetChanged?(false)
-        return accepted
+        _ = onFileDrop?([])
+        return false
     }
 
     override func concludeDragOperation(_ sender: NSDraggingInfo?) {
+        dragExitWorkItem?.cancel()
         onFileDragTargetChanged?(false)
+    }
+
+    private func activateDropTarget() {
+        dragExitWorkItem?.cancel()
+        onFileDragTargetChanged?(true)
+    }
+
+    private func scheduleDropTargetExit() {
+        dragExitWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.onFileDragTargetChanged?(false)
+        }
+        dragExitWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
     private func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
@@ -64,5 +131,61 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
             guard let url = object as? NSURL else { return nil }
             return url as URL
         }
+    }
+
+    private func supportsDrop(from pasteboard: NSPasteboard) -> Bool {
+        if !fileURLs(from: pasteboard).isEmpty { return true }
+
+        let availableTypes = Set(pasteboard.types ?? [])
+        return NotchDropTypes.promisedFiles.contains { availableTypes.contains($0) }
+            || NotchDropTypes.images.contains { availableTypes.contains($0) }
+    }
+
+    private func receivePromisedFiles(from pasteboard: NSPasteboard) -> Bool {
+        let receivers = pasteboard.readObjects(
+            forClasses: [NSFilePromiseReceiver.self],
+            options: nil
+        ) as? [NSFilePromiseReceiver] ?? []
+        guard !receivers.isEmpty else { return false }
+
+        for receiver in receivers {
+            receiver.receivePromisedFiles(
+                atDestination: materializedDropDirectory,
+                options: [:],
+                operationQueue: filePromiseQueue
+            ) { [weak self] url, error in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    guard error == nil else {
+                        _ = self.onFileDrop?([])
+                        return
+                    }
+                    _ = self.onFileDrop?([url])
+                }
+            }
+        }
+        return true
+    }
+
+    private func materializeImage(from pasteboard: NSPasteboard) -> URL? {
+        for type in NotchDropTypes.images {
+            guard let data = pasteboard.data(forType: type) else { continue }
+            let fileExtension: String
+            switch type {
+            case .png: fileExtension = "png"
+            case .tiff: fileExtension = "tiff"
+            case NSPasteboard.PasteboardType("public.heic"): fileExtension = "heic"
+            default: fileExtension = "jpg"
+            }
+
+            let destination = materializedDropDirectory
+                .appendingPathComponent("Dropped Image \(UUID().uuidString)")
+                .appendingPathExtension(fileExtension)
+            guard (try? data.write(to: destination, options: .atomic)) != nil else {
+                return nil
+            }
+            return destination
+        }
+        return nil
     }
 }

@@ -90,6 +90,7 @@ final class AppModel: ObservableObject {
     func hoverChanged(_ hovering: Bool) {
         collapseWorkItem?.cancel()
         guard !isDraggingFileOver else { return }
+        guard mode != .fileDrop, mode != .success else { return }
         guard settings.expandOnHover else { return }
         if hovering {
             if mode == .compact {
