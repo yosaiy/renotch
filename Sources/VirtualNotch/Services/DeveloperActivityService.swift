@@ -14,10 +14,13 @@ final class DeveloperActivityService: ObservableObject {
     @Published private(set) var gitSnapshot: GitActivitySnapshot?
     @Published private(set) var isRefreshing = false
     @Published private(set) var lastRefresh = Date.distantPast
+    @Published private(set) var glance: DeveloperActivityGlance?
 
     private var refreshTimer: Timer?
     private var priorRunningActivities: [String: DeveloperActivity] = [:]
+    private var priorRunningContainerIDs = Set<String>()
     private var recentCompletions: [DeveloperActivity] = []
+    private var glanceWorkItem: DispatchWorkItem?
 
     var primaryActivity: DeveloperActivity {
         // Let a freshly completed task briefly take over the compact notch so
@@ -53,6 +56,7 @@ final class DeveloperActivityService: ObservableObject {
 
     deinit {
         refreshTimer?.invalidate()
+        glanceWorkItem?.cancel()
     }
 
     func start() {
@@ -153,6 +157,7 @@ final class DeveloperActivityService: ObservableObject {
     }
 
     private func apply(_ snapshot: ActivityCollectionSnapshot) {
+        let previousActivities = Array(priorRunningActivities.values)
         let newRunning = Dictionary(uniqueKeysWithValues: snapshot.activities.map { ($0.id, $0) })
         let completed = priorRunningActivities.values.compactMap { previous -> DeveloperActivity? in
             guard newRunning[previous.id] == nil,
@@ -175,12 +180,34 @@ final class DeveloperActivityService: ObservableObject {
                 guard let timestamp = Int(activity.id.split(separator: "-").last ?? "0") else { return false }
                 return Date().timeIntervalSince1970 - Double(timestamp) < 12
             }
+        if let nextGlance = DeveloperActivityGlanceResolver.resolve(
+            previousActivities: previousActivities,
+            activities: snapshot.activities,
+            previousRunningContainerIDs: priorRunningContainerIDs,
+            containers: snapshot.containers,
+            completions: completed
+        ) {
+            present(nextGlance)
+        }
         priorRunningActivities = newRunning
+        priorRunningContainerIDs = Set(snapshot.containers.filter(\.isRunning).map(\.id))
         activities = Self.sortActivities(snapshot.activities + recentCompletions)
         containers = snapshot.containers
         gitSnapshot = snapshot.gitSnapshot
         lastRefresh = Date()
         isRefreshing = false
+    }
+
+    private func present(_ nextGlance: DeveloperActivityGlance) {
+        glanceWorkItem?.cancel()
+        glance = nextGlance
+        let glanceID = nextGlance.id
+        let work = DispatchWorkItem { [weak self] in
+            guard self?.glance?.id == glanceID else { return }
+            self?.glance = nil
+        }
+        glanceWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: work)
     }
 
     private static func sortActivities(_ activities: [DeveloperActivity]) -> [DeveloperActivity] {

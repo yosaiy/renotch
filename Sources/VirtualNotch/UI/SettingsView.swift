@@ -45,7 +45,7 @@ struct SettingsView: View {
     private var generalTab: some View {
         Form {
             Section("Behavior") {
-                Toggle("Show Virtual Notch", isOn: visibilityBinding)
+                Toggle("Show Re:notch", isOn: visibilityBinding)
                 Toggle("Launch at login", isOn: $model.settings.launchAtLogin)
                 Picker("Default compact view", selection: compactContentBinding) {
                     ForEach(CompactNotchContent.allCases) { content in
@@ -156,6 +156,23 @@ struct SettingsView: View {
                     suffix: " pt",
                     precision: 0
                 )
+                HStack {
+                    Text("Quick width")
+                        .frame(width: 100, alignment: .leading)
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            model.settings.expandedWidth = model.settings.compactWidth
+                        }
+                    } label: {
+                        Label("Match compact width", systemImage: "arrow.right.to.line")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(model.settings.expandedWidth == model.settings.compactWidth)
+                }
                 ValueSlider(
                     title: "Height",
                     value: $model.settings.expandedHeight,
@@ -195,7 +212,7 @@ struct SettingsView: View {
             }
 
             Section("About") {
-                LabeledContent("Virtual Notch", value: "1.0.0")
+                LabeledContent("Re:notch", value: "1.0.0")
                 Text("No account, cloud sync, or analytics. Your data stays on this Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

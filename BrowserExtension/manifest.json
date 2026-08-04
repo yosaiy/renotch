@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Re:notch Browser Activity",
+  "version": "1.0.1",
+  "description": "Shows YouTube playback and browser download progress in Re:notch.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0SR1oamU7Dvq+bf0OFJssXcgoeISlroHCLgkjRgHJRpkTw7d6tibOX3+ads8bL/4M4sntQjltjS8fnuLstrbum8I8Fxha94sOP8EjXfr6AY00HHYe4pXqCJA2vM/f09H9tPVqSZPV8/qQW+mRv27hwS1LIfvKq4ID/j7iGZuAqvY78ozyl6vVDNWhwQmfg8ghGdjQcUCuc2zH7oAiUm+8m1XKvykCHuYiTmlPefI+2+UbhqoXbuNLjGjsptCY2jS97850WpPAcIReE2Y0WmWzL3dQ3RaZxNWBPW+9LGOxL1vOskFv9RQ6end1q9hDL6xo5hb1puE/tjgQKQLjh8oLQIDAQAB",
+  "permissions": [
+    "downloads",
+    "nativeMessaging",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*"
+      ],
+      "js": ["youtube.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

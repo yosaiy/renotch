@@ -3,6 +3,7 @@ import Foundation
 
 @main
 struct SmokeTests {
+    @MainActor
     static func main() throws {
         var failures: [String] = []
 
@@ -20,12 +21,16 @@ struct SmokeTests {
         settings.clampValues()
         expect(settings.compactWidth == 180, "compact width lower bound")
         expect(settings.compactHeight == 300, "compact height upper bound")
-        expect(settings.expandedWidth == 500, "expanded width upper bound")
+        expect(settings.expandedWidth == 800, "expanded width upper bound")
         expect(settings.expandedHeight == 260, "expanded height upper bound")
         expect(settings.resolvedCompactCornerRadius == 40, "compact corner radius upper bound")
         expect(settings.collapseDelay == 0.3, "collapse delay lower bound")
         expect(settings.resolvedCompactContent == .music, "music is the default compact content")
         expect(CompactNotchContent.calendar.section == .calendar, "calendar compact destination")
+        expect(
+            NotchSettings.compactWidthRange == NotchSettings.expandedWidthRange,
+            "compact and expanded width ranges match"
+        )
 
         var minimumCompactSettings = NotchSettings.default
         minimumCompactSettings.compactHeight = 1
@@ -43,6 +48,8 @@ struct SmokeTests {
         expect(NotchSettings.default.compactHeight == 36, "recommended compact height")
         expect(NotchSettings.default.expandedWidth == 460, "recommended expanded width")
         expect(NotchSettings.default.expandedHeight == 220, "expanded menu height")
+        expect(NotchSettings.codingExpandedWidth == 500, "coding menu width")
+        expect(NotchSettings.codingExpandedHeight == 240, "coding menu height")
         expect(NotchSettings.default.resolvedCompactCornerRadius == 18, "default compact corner radius")
         expect(NotchSettings.dragWidth == 500, "drag width")
         expect(NotchSettings.dragHeight == 120, "drag height")
@@ -52,6 +59,139 @@ struct SmokeTests {
         expect(TimerService.formatted(-1) == "00:00", "negative timer formatting")
         expect(MusicService.parseAppleScriptNumber("309.389") == 309.389, "music dot-decimal parsing")
         expect(MusicService.parseAppleScriptNumber("309,389") == 309.389, "music comma-decimal parsing")
+        let separator = "\u{001F}"
+        let spotifySnapshot = MusicService.parseMetadata(
+            [
+                "playing",
+                "spotify:track:demo",
+                "Spotify Track",
+                "Spotify Artist",
+                "Spotify Album",
+                "245000",
+                "61",
+                "75",
+                "https://i.scdn.co/image/demo",
+                "true",
+                "all"
+            ].joined(separator: separator),
+            source: .spotify
+        )
+        expect(spotifySnapshot?.track?.source == .spotify, "Spotify metadata source")
+        expect(spotifySnapshot?.track?.duration == 245, "Spotify millisecond duration conversion")
+        expect(spotifySnapshot?.position == 61, "Spotify playback position")
+        expect(spotifySnapshot?.volume == 0.75, "Spotify volume normalization")
+        expect(spotifySnapshot?.shuffleEnabled == true, "Spotify shuffle state parsing")
+        expect(spotifySnapshot?.repeatMode == .all, "Spotify repeat state parsing")
+        expect(MusicService.parseAppleScriptBoolean("true"), "AppleScript boolean parsing")
+        expect(MusicService.parseRepeatMode("one") == .one, "repeat-one parsing")
+        expect(MusicRepeatMode.off.next(for: .appleMusic) == .all, "Apple Music repeat starts with all")
+        expect(MusicRepeatMode.all.next(for: .appleMusic) == .one, "Apple Music repeat cycles to one")
+        expect(MusicRepeatMode.one.next(for: .appleMusic) == .off, "Apple Music repeat cycles off")
+        expect(MusicRepeatMode.all.next(for: .spotify) == .off, "Spotify repeat toggles off")
+
+        let browser = BrowserActivityService(observeBridge: false)
+        let mediaMessage = try JSONSerialization.data(withJSONObject: [
+            "version": 1,
+            "kind": "media",
+            "action": "update",
+            "sessionID": "tab-1",
+            "title": "Adaptive Notch Demo",
+            "channel": "Virtual Notch",
+            "url": "https://www.youtube.com/watch?v=demo",
+            "isPlaying": true,
+            "position": 30,
+            "duration": 120
+        ])
+        browser.ingest(mediaMessage)
+        expect(browser.media?.title == "Adaptive Notch Demo", "browser media title ingestion")
+        expect(browser.media?.progress == 0.25, "browser media progress")
+
+        let downloadMessage = try JSONSerialization.data(withJSONObject: [
+            "version": 1,
+            "kind": "download",
+            "action": "update",
+            "downloadID": 7,
+            "filename": "/Users/test/Downloads/archive.zip",
+            "bytesReceived": 500,
+            "totalBytes": 1000,
+            "state": "in_progress",
+            "paused": false
+        ])
+        browser.ingest(downloadMessage)
+        expect(browser.activeDownload?.displayName == "archive.zip", "browser download filename")
+        expect(browser.activeDownload?.progress == 0.5, "browser download progress")
+        if case let .download(id, state, _) = browser.presentation {
+            expect(id == 7 && state == .inProgress, "download takes live activity priority")
+        } else {
+            expect(false, "download live activity presentation")
+        }
+
+        let earlier = Date(timeIntervalSinceReferenceDate: 100)
+        let later = Date(timeIntervalSinceReferenceDate: 200)
+        expect(
+            AdaptiveMediaArbitrator.resolve(
+                browserAvailable: true,
+                browserIsPlaying: true,
+                browserActivation: later,
+                musicIsPlaying: false,
+                musicActivation: earlier
+            ) == .browser,
+            "playing YouTube selects browser media"
+        )
+        expect(
+            AdaptiveMediaArbitrator.resolve(
+                browserAvailable: true,
+                browserIsPlaying: true,
+                browserActivation: earlier,
+                musicIsPlaying: true,
+                musicActivation: later
+            ) == .music,
+            "new music playback takes over YouTube"
+        )
+        expect(
+            AdaptiveMediaArbitrator.resolve(
+                browserAvailable: true,
+                browserIsPlaying: true,
+                browserActivation: later,
+                musicIsPlaying: true,
+                musicActivation: earlier
+            ) == .browser,
+            "resumed YouTube takes back media presentation"
+        )
+        expect(
+            AdaptiveMediaArbitrator.resolve(
+                browserAvailable: true,
+                browserIsPlaying: false,
+                browserActivation: earlier,
+                musicIsPlaying: true,
+                musicActivation: earlier
+            ) == .music,
+            "playing music wins over paused YouTube"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: true,
+                mediaSource: .music
+            ) == .codingGlance,
+            "coding glance temporarily takes over playing music"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: false,
+                mediaSource: .music
+            ) == .music,
+            "music returns after coding glance ends"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: true,
+                codingGlanceAvailable: true,
+                mediaSource: .music
+            ) == .download,
+            "download remains the highest compact priority"
+        )
         expect(
             DeveloperActivityService.frameworkName(command: "node_modules/.bin/next dev") == "Next.js",
             "Next.js activity detection"
@@ -83,6 +223,47 @@ struct SmokeTests {
         expect(
             DeveloperActivityService.preferredServerPort(from: [9229]) == nil,
             "inspector-only listener is ignored"
+        )
+        let glanceServer = DeveloperActivity(
+            id: "server-101-5173",
+            kind: .localhost,
+            title: "Vite",
+            subtitle: "localhost:5173",
+            state: .running
+        )
+        let glanceDocker = DeveloperActivity(
+            id: "docker-summary",
+            kind: .docker,
+            title: "Docker",
+            subtitle: "1 container running",
+            state: .running
+        )
+        let glanceContainer = DockerContainer(
+            id: "container-1",
+            name: "renotch-api",
+            status: "Up 4 seconds",
+            isRunning: true
+        )
+        let codingGlance = DeveloperActivityGlanceResolver.resolve(
+            previousActivities: [],
+            activities: [glanceServer, glanceDocker],
+            previousRunningContainerIDs: [],
+            containers: [glanceContainer],
+            completions: [],
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        )
+        expect(codingGlance?.title == "Coding active", "combined coding glance title")
+        expect(codingGlance?.subtitle.contains("1 server") == true, "coding glance includes server count")
+        expect(codingGlance?.subtitle.contains("1 Docker container") == true, "coding glance includes Docker count")
+        expect(
+            DeveloperActivityGlanceResolver.resolve(
+                previousActivities: [glanceServer, glanceDocker],
+                activities: [glanceServer, glanceDocker],
+                previousRunningContainerIDs: [glanceContainer.id],
+                containers: [glanceContainer],
+                completions: []
+            ) == nil,
+            "unchanged coding activity does not repeat a glance"
         )
         let metadata = DeveloperActivityService.parseSiteMetadata(
             html: """
@@ -222,7 +403,7 @@ struct SmokeTests {
         expect(migrated.expandedHeight == 220, "legacy expanded height migration")
 
         if failures.isEmpty {
-            print("All Virtual Notch smoke tests passed.")
+            print("All Re:notch smoke tests passed.")
         } else {
             failures.forEach { fputs("FAIL: \($0)\n", stderr) }
             exit(1)

@@ -135,7 +135,13 @@ struct NotchView: View {
                 FileDropSuccessView()
                     .transition(contentTransition)
             case .compact:
-                CompactNotchView(music: model.music, timer: model.timer, shelf: model.shelf)
+                CompactNotchView(
+                    music: model.music,
+                    browser: model.browser,
+                    timer: model.timer,
+                    shelf: model.shelf,
+                    activity: model.activity
+                )
                     .transition(contentTransition)
                     .onTapGesture {
                         model.notchClicked()

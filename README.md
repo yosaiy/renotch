@@ -1,4 +1,4 @@
-# Virtual Notch — developer activity for macOS
+# Re:notch — developer activity for macOS
 
 A native macOS 13+ productivity notch for developers. Local servers, builds, containers, Git changes, deployments, and terminal tasks stay one hover away.
 
@@ -13,7 +13,8 @@ A native macOS 13+ productivity notch for developers. Local servers, builds, con
 - A focused compact state that prioritizes the most relevant developer activity, with category navigation on hover expansion.
 - Borderless, non-activating `NSPanel` above regular apps and across Spaces/full-screen apps.
 - Smooth hover expansion, click pinning, delayed collapse, and outside-click dismissal.
-- Apple Music now-playing view with album artwork, an animated compact waveform, seek, previous/next, play/pause, and volume controls.
+- Apple Music and Spotify now-playing view with album artwork, adaptive source switching, an animated compact waveform, seek, previous/next, play/pause, and volume controls.
+- Adaptive Chromium browser activity with YouTube thumbnails/playback state and live file-download progress.
 - Recoverable timer with presets, custom duration, pause/resume/cancel, and notifications.
 - Local clipboard history for up to 20 text items with copy, delete, clear-all, duplicate filtering, and concealed/transient type filtering.
 - Adaptive in-memory File Shelf for dropping up to 12 files into the notch, dragging them into other apps, revealing them in Finder, and removing missing references safely.
@@ -29,9 +30,20 @@ A native macOS 13+ productivity notch for developers. Local servers, builds, con
 swift run VirtualNotch
 ```
 
-The first run opens a compact onboarding view. Virtual Notch then lives in the menu bar.
+The first run opens a compact onboarding view. Re:notch then lives in the menu bar.
 
-The first time the music player is used, macOS asks for permission to control Apple Music. You can change this later in System Settings → Privacy & Security → Automation.
+The first time each music player is used, macOS asks for permission to control Apple Music or Spotify. You can change this later in System Settings → Privacy & Security → Automation.
+
+## Browser activity setup
+
+Browser activity currently supports Chromium browsers such as Chrome, Edge, Brave, and Chromium.
+
+1. Build and launch the packaged app with `./scripts/build-app.sh`.
+2. From the Re:notch menu-bar menu, choose **Set Up Browser Activity…**.
+3. Open the browser's extensions page, enable Developer mode, and choose **Load unpacked**.
+4. Select the `BrowserExtension` directory revealed by Re:notch.
+
+The bundled extension sends YouTube playback metadata and active-download byte progress to the app through a local native messaging helper. See [`BrowserExtension/README.md`](BrowserExtension/README.md) for browser-specific details.
 
 ## Test
 
@@ -54,8 +66,8 @@ The default build is ad-hoc signed and appears in `dist/`. For Developer ID sign
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" ./scripts/build-dmg.sh
 ```
 
-Notarization requires Xcode command-line tooling plus Apple Developer credentials. After building a Developer ID-signed DMG, submit it with `xcrun notarytool submit ... --wait`, then staple with `xcrun stapler staple dist/VirtualNotch-1.0.0.dmg`.
+Notarization requires Xcode command-line tooling plus Apple Developer credentials. After building a Developer ID-signed DMG, submit it with `xcrun notarytool submit ... --wait`, then staple with `xcrun stapler staple dist/Re-notch-1.0.0.dmg`.
 
 ## Privacy
 
-There is no account, analytics, network request, or cloud sync. Developer activity is derived locally from running processes, listening TCP ports, Docker CLI output, and Git metadata. Settings, timer state, and clipboard history stay in local `UserDefaults`. File Shelf entries are URL references kept in memory only: files are never uploaded or copied, and the shelf clears when the app quits. Clipboard capture can be disabled or cleared at any time.
+There is no account, analytics, or cloud sync. Developer activity is derived locally from running processes, listening TCP ports, Docker CLI output, and Git metadata. When browser activity is installed, the extension reads only YouTube playback metadata and Chromium's active-download status, sends it locally through native messaging, and the app downloads the current YouTube thumbnail for display. Settings, timer state, and clipboard history stay in local `UserDefaults`. File Shelf entries are URL references kept in memory only: files are never uploaded or copied, and the shelf clears when the app quits. Clipboard capture can be disabled or cleared at any time.

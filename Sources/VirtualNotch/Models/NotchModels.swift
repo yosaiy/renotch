@@ -52,6 +52,7 @@ enum CompactNotchContent: String, Codable, CaseIterable, Identifiable {
 }
 
 enum NotchSection: String, CaseIterable, Identifiable {
+    case dashboard
     case activity
     case welcome
     case music
@@ -65,11 +66,14 @@ enum NotchSection: String, CaseIterable, Identifiable {
 }
 
 struct NotchSettings: Codable, Equatable {
-    static let compactWidthRange = 180.0...800.0
+    static let notchWidthRange = 180.0...800.0
+    static let compactWidthRange = notchWidthRange
     static let compactHeightRange = 28.0...300.0
     static let compactCornerRadiusRange = 0.0...40.0
-    static let expandedWidthRange = 420.0...500.0
+    static let expandedWidthRange = notchWidthRange
     static let expandedHeightRange = 180.0...260.0
+    static let codingExpandedWidth = 500.0
+    static let codingExpandedHeight = 240.0
     static let dragWidth = 500.0
     static let dragHeight = 120.0
 

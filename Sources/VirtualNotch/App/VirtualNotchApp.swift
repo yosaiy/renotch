@@ -6,7 +6,7 @@ struct VirtualNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("Virtual Notch", systemImage: "capsule.tophalf.filled") {
+        MenuBarExtra("Re:notch", systemImage: "capsule.tophalf.filled") {
             MenuBarContent()
                 .environmentObject(appDelegate.model)
         }
@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NotificationService.shared.requestAuthorization()
+        _ = try? BrowserIntegrationInstaller.installBundledHost()
         notchController = NotchWindowController(model: model, screenManager: screenManager)
         settingsController = SettingsWindowController(model: model, screenManager: screenManager)
         if model.settings.isEnabled {
@@ -58,6 +59,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func openSettings() {
         settingsController?.present()
     }
+
+    func openBrowserIntegration() {
+        do {
+            try BrowserIntegrationInstaller.installBundledHost()
+            guard let extensionURL = BrowserIntegrationInstaller.bundledExtensionURL,
+                  FileManager.default.fileExists(atPath: extensionURL.path) else {
+                model.showMessage("Browser extension is unavailable")
+                return
+            }
+            NSWorkspace.shared.activateFileViewerSelecting([
+                extensionURL.appendingPathComponent("manifest.json")
+            ])
+            model.setVisible(true)
+            notchController?.show()
+            model.showMessage("Load BrowserExtension in your browser")
+        } catch {
+            model.setVisible(true)
+            notchController?.show()
+            model.showMessage(error.localizedDescription)
+        }
+    }
 }
 
 private struct MenuBarContent: View {
@@ -82,11 +104,12 @@ private struct MenuBarContent: View {
 
         Button("Settings…") { AppDelegate.shared?.openSettings() }
             .keyboardShortcut(",")
+        Button("Set Up Browser Activity…") { AppDelegate.shared?.openBrowserIntegration() }
         Button("Restart Notch") { AppDelegate.shared?.restartNotch() }
 
         Divider()
 
-        Button("Quit Virtual Notch") { NSApp.terminate(nil) }
+        Button("Quit Re:notch") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 

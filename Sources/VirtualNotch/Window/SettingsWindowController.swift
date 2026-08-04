@@ -15,7 +15,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             defer: false
         )
 
-        window.title = "Virtual Notch Settings"
+        window.title = "Re:notch Settings"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.contentViewController = hostingController

@@ -4,19 +4,22 @@ set -euo pipefail
 SCRIPT_DIR="${0:A:h}"
 PROJECT_DIR="${SCRIPT_DIR:h}"
 DIST_DIR="$PROJECT_DIR/dist"
-APP_PATH="$DIST_DIR/Virtual Notch.app"
+APP_PATH="$DIST_DIR/Re:notch.app"
 CONTENTS_PATH="$APP_PATH/Contents"
 BUILD_CONFIGURATION="${BUILD_CONFIGURATION:-release}"
 SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}"
 
 cd "$PROJECT_DIR"
 swift build -c "$BUILD_CONFIGURATION" --product VirtualNotch
+swift build -c "$BUILD_CONFIGURATION" --product VirtualNotchBrowserBridge
 BIN_DIR="$(swift build -c "$BUILD_CONFIGURATION" --show-bin-path)"
 
 rm -rf "$APP_PATH"
 mkdir -p "$CONTENTS_PATH/MacOS" "$CONTENTS_PATH/Resources"
 cp "$BIN_DIR/VirtualNotch" "$CONTENTS_PATH/MacOS/VirtualNotch"
+cp "$BIN_DIR/VirtualNotchBrowserBridge" "$CONTENTS_PATH/MacOS/VirtualNotchBrowserBridge"
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_PATH/Info.plist"
+cp -R "$PROJECT_DIR/BrowserExtension" "$CONTENTS_PATH/Resources/BrowserExtension"
 
 ICON_TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$ICON_TEMP_DIR"' EXIT

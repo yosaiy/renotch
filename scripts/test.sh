@@ -10,12 +10,15 @@ swift build
 swiftc \
     -swift-version 5 \
     Sources/VirtualNotch/Models/NotchModels.swift \
+    Sources/VirtualNotch/Models/BrowserActivityModels.swift \
+    Sources/VirtualNotch/Models/DeveloperActivityGlance.swift \
     Sources/VirtualNotch/Services/SettingsStore.swift \
     Sources/VirtualNotch/Services/TimerService.swift \
     Sources/VirtualNotch/Services/ClipboardService.swift \
     Sources/VirtualNotch/Services/ShelfStore.swift \
     Sources/VirtualNotch/Services/TodoStore.swift \
     Sources/VirtualNotch/Services/MusicService.swift \
+    Sources/VirtualNotch/Services/BrowserActivityService.swift \
     Sources/VirtualNotch/Services/DeveloperActivityService.swift \
     Tests/SmokeTests.swift \
     -framework AppKit \

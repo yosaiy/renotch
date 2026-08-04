@@ -36,6 +36,8 @@ struct MusicPlayerView: View {
                 }
                 Spacer(minLength: 6)
                 HStack(spacing: 4) {
+                    Text(music.activeSource.displayName)
+                        .foregroundStyle(sourceAccent)
                     Circle()
                         .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
                         .frame(width: 5, height: 5)
@@ -68,75 +70,133 @@ struct MusicPlayerView: View {
             .monospacedDigit()
             .foregroundStyle(Color.notchMuted)
 
-            HStack(spacing: 12) {
-                PlayerControlButton(icon: "backward.fill", size: 25, action: music.previousTrack)
-                Button(action: music.togglePlayback) {
-                    Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(.black)
-                        .frame(width: 30, height: 30)
-                        .background(Circle().fill(.white))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .help(music.isPlaying ? "Pause" : "Play")
+            HStack(spacing: 10) {
+                HStack(spacing: 0) {
+                    PlayerControlButton(
+                        icon: "shuffle",
+                        title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
+                        size: 27,
+                        isActive: music.shuffleEnabled,
+                        activeColor: sourceAccent,
+                        action: music.toggleShuffle
+                    )
+                    .frame(maxWidth: .infinity)
 
-                PlayerControlButton(icon: "forward.fill", size: 25, action: music.nextTrack)
+                    PlayerControlButton(
+                        icon: "backward.fill",
+                        title: "Previous",
+                        size: 27,
+                        action: music.previousTrack
+                    )
+                    .frame(maxWidth: .infinity)
 
-                Spacer(minLength: 12)
-
-                Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.notchMuted)
-                Slider(
-                    value: Binding(
-                        get: { activeVolume },
-                        set: { draggedVolume = $0 }
-                    ),
-                    in: 0...1,
-                    onEditingChanged: { editing in
-                        guard !editing, let draggedVolume else { return }
-                        music.setVolume(draggedVolume)
-                        self.draggedVolume = nil
+                    Button(action: music.togglePlayback) {
+                        Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.black)
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(.white))
+                            .contentShape(Circle())
                     }
+                    .buttonStyle(PlayerPressButtonStyle())
+                    .frame(maxWidth: .infinity)
+                    .help(music.isPlaying ? "Pause" : "Play")
+
+                    PlayerControlButton(
+                        icon: "forward.fill",
+                        title: "Next",
+                        size: 27,
+                        action: music.nextTrack
+                    )
+                    .frame(maxWidth: .infinity)
+
+                    PlayerControlButton(
+                        icon: music.repeatMode == .one ? "repeat.1" : "repeat",
+                        title: repeatHelp,
+                        size: 27,
+                        isActive: music.repeatMode != .off,
+                        activeColor: sourceAccent,
+                        action: music.cycleRepeatMode
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.045))
                 )
-                .tint(.white.opacity(0.82))
-                .frame(width: 88)
+
+                HStack(spacing: 7) {
+                    Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.notchMuted)
+                    Slider(
+                        value: Binding(
+                            get: { activeVolume },
+                            set: { draggedVolume = $0 }
+                        ),
+                        in: 0...1,
+                        onEditingChanged: { editing in
+                            guard !editing, let draggedVolume else { return }
+                            music.setVolume(draggedVolume)
+                            self.draggedVolume = nil
+                        }
+                    )
+                    .tint(.white.opacity(0.82))
+                }
+                .frame(width: 94)
             }
         }
     }
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(music.automationDenied ? "Music access is off" : "Nothing playing")
+            Text(
+                music.automationDenied
+                    ? "\(music.activeSource.displayName) access is off"
+                    : "Nothing playing"
+            )
                 .font(.system(size: 14, weight: .semibold))
             Text(
                 music.automationDenied
-                    ? "Allow Virtual Notch to control Music in System Settings → Privacy & Security → Automation."
-                    : "Play a song in Apple Music and its artwork and controls will appear here."
+                    ? "Allow Re:notch to control \(music.activeSource.displayName) in System Settings → Privacy & Security → Automation."
+                    : "Play a song in Apple Music or Spotify and its artwork and controls will appear here."
             )
             .font(.system(size: 10))
             .foregroundStyle(Color.notchMuted)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
 
-            Button(action: music.openMusic) {
-                HStack(spacing: 6) {
-                    Image(systemName: "music.note")
-                    Text("Open Music")
-                }
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .frame(height: 27)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.musicAccent)
-                )
+            HStack(spacing: 7) {
+                sourceButton(.appleMusic)
+                sourceButton(.spotify)
             }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: 310, alignment: .leading)
+    }
+
+    private func sourceButton(_ source: MusicSource) -> some View {
+        Button {
+            music.open(source)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: source == .spotify ? "waveform.circle.fill" : "music.note")
+                Text("Open \(source.displayName)")
+            }
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .frame(height: 27)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(source == .spotify ? spotifyAccent : Color.musicAccent)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!music.isInstalled(source))
+        .opacity(music.isInstalled(source) ? 1 : 0.4)
     }
 
     private var activePosition: Double {
@@ -145,6 +205,22 @@ struct MusicPlayerView: View {
 
     private var activeVolume: Double {
         draggedVolume ?? music.volume
+    }
+
+    private var sourceAccent: Color {
+        music.activeSource == .spotify ? spotifyAccent : Color.musicAccent
+    }
+
+    private var spotifyAccent: Color {
+        Color(red: 0.12, green: 0.78, blue: 0.36)
+    }
+
+    private var repeatHelp: String {
+        switch music.repeatMode {
+        case .off: return "Repeat off"
+        case .all: return "Repeat all"
+        case .one: return "Repeat one"
+        }
     }
 
     private func metadata(for track: MusicTrack) -> String {
@@ -209,18 +285,42 @@ struct AudioWaveform: View {
 
 private struct PlayerControlButton: View {
     let icon: String
+    let title: String
     let size: CGFloat
+    var isActive = false
+    var activeColor: Color = .white
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.86))
+                .foregroundStyle(isActive ? activeColor : .white.opacity(0.86))
                 .frame(width: size, height: size)
-                .background(Circle().fill(Color.white.opacity(0.08)))
+                .background(
+                    Circle().fill(
+                        isActive
+                            ? activeColor.opacity(0.16)
+                            : Color.white.opacity(isHovering ? 0.13 : 0.08)
+                    )
+                )
                 .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlayerPressButtonStyle())
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.16), value: isHovering)
+        .animation(.easeOut(duration: 0.16), value: isActive)
+        .help(title)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct PlayerPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .opacity(configuration.isPressed ? 0.82 : 1)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }

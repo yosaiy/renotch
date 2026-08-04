@@ -10,7 +10,7 @@ struct CompactMusicView: View {
                 .frame(width: 24, height: 24)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(message ?? music.track?.title ?? "Apple Music")
+                Text(message ?? music.track?.title ?? "Music")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(message == nil ? .white : Color.notchAccent)
                     .lineLimit(1)
@@ -30,9 +30,11 @@ struct CompactMusicView: View {
     }
 
     private var subtitle: String {
-        if let artist = music.track?.artist, !artist.isEmpty { return artist }
+        if let artist = music.track?.artist, !artist.isEmpty {
+            return "\(artist) · \(music.activeSource.displayName)"
+        }
         switch music.playbackState {
-        case .notRunning: return "Music is closed"
+        case .notRunning: return "Apple Music or Spotify"
         case .stopped: return "Not playing"
         case .paused: return "Paused"
         case .playing: return "Now playing"

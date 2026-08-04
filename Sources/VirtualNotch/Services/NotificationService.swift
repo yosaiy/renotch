@@ -12,7 +12,7 @@ final class NotificationService {
     func timerFinished() {
         let content = UNMutableNotificationContent()
         content.title = "Timer complete"
-        content.body = "Your Virtual Notch timer has finished."
+        content.body = "Your Re:notch timer has finished."
         content.sound = .default
 
         let request = UNNotificationRequest(

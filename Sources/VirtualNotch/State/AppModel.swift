@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 @MainActor
@@ -18,10 +19,12 @@ final class AppModel: ObservableObject {
     @Published var customTimerMinutes = 30
     @Published var transientMessage: String?
     @Published var settingsError: String?
+    @Published private(set) var expandedSectionOverride: NotchSection?
 
     let timer: TimerService
     let clipboard: ClipboardService
     let music: MusicService
+    let browser: BrowserActivityService
     let calendar: AppleCalendarService
     let shelf: ShelfStore
     let todos: TodoStore
@@ -36,6 +39,9 @@ final class AppModel: ObservableObject {
     private var dropExitWorkItem: DispatchWorkItem?
     private var successWorkItem: DispatchWorkItem?
     private var messageWorkItem: DispatchWorkItem?
+    private var browserActivityCancellable: AnyCancellable?
+    private var musicActivityCancellable: AnyCancellable?
+    private var activityGlanceCancellable: AnyCancellable?
     private var modeBeforeFileDrop: NotchMode = .compact
     private var isApplyingLoginSetting = false
 
@@ -47,6 +53,7 @@ final class AppModel: ObservableObject {
         timer = TimerService(defaults: defaults)
         clipboard = ClipboardService(defaults: defaults)
         music = MusicService()
+        browser = BrowserActivityService()
         calendar = AppleCalendarService()
         shelf = ShelfStore()
         todos = TodoStore(defaults: defaults)
@@ -55,6 +62,7 @@ final class AppModel: ObservableObject {
         let didOnboard = defaults.bool(forKey: "virtualNotch.didCompleteOnboarding")
         mode = didOnboard ? .compact : .expanded
         selectedSection = didOnboard ? loadedSettings.resolvedCompactContent.section : .welcome
+        expandedSectionOverride = nil
         isPinned = !didOnboard
 
         clipboard.start(enabled: settings.clipboardHistoryEnabled)
@@ -63,6 +71,20 @@ final class AppModel: ObservableObject {
                 self?.handleTimerCompletion()
             }
         }
+        browserActivityCancellable = browser.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        musicActivityCancellable = music.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+        activityGlanceCancellable = activity.$glance
+            .dropFirst()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.objectWillChange.send()
+                    self?.onPanelConfigurationChanged?()
+                }
+            }
     }
 
     var isExpanded: Bool {
@@ -74,13 +96,43 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private var compactDestination: NotchSection { settings.resolvedCompactContent.section }
+    private var compactDestination: NotchSection {
+        activity.glance == nil ? settings.resolvedCompactContent.section : .activity
+    }
+
+    var activeMediaSource: AdaptiveMediaSource? {
+        AdaptiveMediaArbitrator.resolve(
+            browserAvailable: browser.media != nil,
+            browserIsPlaying: browser.media?.isPlaying == true,
+            browserActivation: browser.playbackActivationDate,
+            musicIsPlaying: music.isPlaying,
+            musicActivation: music.playbackActivationDate
+        )
+    }
 
     var currentSize: NSSize {
         switch mode {
         case .compact:
+            if browser.activeDownload != nil {
+                return NSSize(
+                    width: max(settings.compactWidth, 340),
+                    height: max(settings.compactHeight, 64)
+                )
+            }
+            if activity.glance != nil {
+                return NSSize(
+                    width: max(settings.compactWidth, 310),
+                    height: max(settings.compactHeight, 48)
+                )
+            }
             return NSSize(width: settings.compactWidth, height: settings.compactHeight)
         case .expanded:
+            if isShowingCodingSection {
+                return NSSize(
+                    width: max(settings.expandedWidth, NotchSettings.codingExpandedWidth),
+                    height: max(settings.expandedHeight, NotchSettings.codingExpandedHeight)
+                )
+            }
             return NSSize(width: settings.expandedWidth, height: settings.expandedHeight)
         case .fileDrop, .success:
             return NSSize(width: NotchSettings.dragWidth, height: NotchSettings.dragHeight)
@@ -94,7 +146,10 @@ final class AppModel: ObservableObject {
         guard settings.expandOnHover else { return }
         if hovering {
             if mode == .compact {
-                expand(section: compactDestination)
+                expand(
+                    section: compactDestination,
+                    preferSelectedSection: activity.glance != nil
+                )
             }
         } else if !isPinned {
             scheduleCollapse()
@@ -109,14 +164,27 @@ final class AppModel: ObservableObject {
             isPinned.toggle()
             if !isPinned { scheduleCollapse() }
         case .compact:
-            expand(section: compactDestination, pin: true)
+            expand(
+                section: compactDestination,
+                pin: true,
+                preferSelectedSection: activity.glance != nil
+            )
         case .fileDrop, .success:
             break
         }
     }
 
-    func expand(section: NotchSection? = nil, pin: Bool = false) {
+    func expand(
+        section: NotchSection? = nil,
+        pin: Bool = false,
+        preferSelectedSection: Bool = false
+    ) {
         collapseWorkItem?.cancel()
+        if preferSelectedSection {
+            expandedSectionOverride = section
+        } else if mode != .expanded {
+            expandedSectionOverride = nil
+        }
         if let section { selectedSection = section }
         if pin { isPinned = true }
         guard mode != .expanded else { return }
@@ -129,6 +197,7 @@ final class AppModel: ObservableObject {
         guard force || !isDraggingFileOver else { return }
         guard force || !isPinned else { return }
         isPinned = false
+        expandedSectionOverride = nil
         guard mode != .compact else { return }
         mode = .compact
         onPanelConfigurationChanged?()
@@ -151,6 +220,7 @@ final class AppModel: ObservableObject {
         collapseWorkItem?.cancel()
         if pin { isPinned = true }
         selectedSection = .shelf
+        expandedSectionOverride = .shelf
         guard mode != .expanded else { return }
         mode = .expanded
         onPanelConfigurationChanged?()
@@ -197,9 +267,12 @@ final class AppModel: ObservableObject {
             return false
         }
 
-        isPinned = false
+        successWorkItem?.cancel()
+        successWorkItem = nil
+        isPinned = true
         selectedSection = .shelf
-        mode = .success
+        expandedSectionOverride = .shelf
+        mode = .expanded
         onPanelConfigurationChanged?()
         if result.capacityRejectedCount > 0 {
             showMessage("Shelf is full")
@@ -207,15 +280,6 @@ final class AppModel: ObservableObject {
             showMessage(result.addedCount == 1 ? "Added to shelf" : "Added \(result.addedCount) files")
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
-
-        successWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, self.mode == .success else { return }
-            self.mode = .compact
-            self.onPanelConfigurationChanged?()
-        }
-        successWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75, execute: work)
         return true
     }
 
@@ -285,6 +349,13 @@ final class AppModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + settings.collapseDelay, execute: work)
     }
 
+    private var isShowingCodingSection: Bool {
+        if expandedSectionOverride != nil {
+            return expandedSectionOverride == .activity
+        }
+        return activeMediaSource == nil && selectedSection == .activity
+    }
+
     private func restoreModeAfterFileDrop() {
         mode = modeBeforeFileDrop == .expanded && isPinned ? .expanded : .compact
         if mode == .compact { isPinned = false }
@@ -299,9 +370,8 @@ final class AppModel: ObservableObject {
         if settings.timerNotificationsEnabled {
             NotificationService.shared.timerFinished()
         }
-        selectedSection = .timer
         transientMessage = "Timer complete"
-        expand(pin: true)
+        expand(section: .timer, pin: true, preferSelectedSection: true)
     }
 
     private func applyLaunchAtLoginIfNeeded(oldValue: Bool) {

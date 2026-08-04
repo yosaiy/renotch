@@ -13,9 +13,9 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>Virtual Notch</string>
+    <string>Re:notch</string>
     <key>CFBundleDisplayName</key>
-    <string>Virtual Notch</string>
+    <string>Re:notch</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -29,11 +29,11 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Virtual Notch uses Apple Music access to show the current song and control playback.</string>
+	<string>Re:notch uses Apple Music and Spotify access to show the current song and control playback.</string>
     <key>NSCalendarsUsageDescription</key>
-    <string>Virtual Notch shows your upcoming Apple Calendar events in the notch.</string>
+    <string>Re:notch shows your upcoming Apple Calendar events in the notch.</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Virtual Notch shows your upcoming Apple Calendar events in the notch.</string>
+    <string>Re:notch shows your upcoming Apple Calendar events in the notch.</string>
     <key>NSUserNotificationAlertStyle</key>
     <string>alert</string>
     <key>NSHumanReadableCopyright</key>

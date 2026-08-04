@@ -34,12 +34,19 @@ struct DeveloperActivityView: View {
         HStack(spacing: 6) {
             ForEach(DeveloperActivityKind.allCases) { kind in
                 let count = service.activities.filter { $0.kind == kind && $0.state == .running }.count
+                let isSelected = selectedKind == kind
                 Button {
-                    selectedKind = selectedKind == kind ? nil : kind
+                    selectedKind = isSelected ? nil : kind
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: kind.symbol)
-                        Text(kind.title)
+                            .frame(width: 12)
+                        if isSelected {
+                            Text(kind.title)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .transition(.move(edge: .leading).combined(with: .opacity))
+                        }
                         if count > 0 {
                             Text("\(count)")
                                 .font(.system(size: 8, weight: .bold, design: .monospaced))
@@ -47,15 +54,15 @@ struct DeveloperActivityView: View {
                         }
                     }
                     .font(.system(size: 9.5, weight: .medium))
-                    .foregroundStyle(selectedKind == kind ? .white : Color.notchMuted)
-                    .padding(.horizontal, 9)
+                    .foregroundStyle(isSelected ? .white : Color.notchMuted)
+                    .padding(.horizontal, isSelected ? 8 : 6)
                     .frame(height: 25)
                     .background(
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(selectedKind == kind ? kind.tint.opacity(0.17) : Color.white.opacity(0.045))
+                            .fill(isSelected ? kind.tint.opacity(0.17) : Color.white.opacity(0.045))
                     )
                     .overlay(alignment: .bottom) {
-                        if selectedKind == kind {
+                        if isSelected {
                             Capsule()
                                 .fill(kind.tint)
                                 .frame(width: 16, height: 1.5)
@@ -64,6 +71,8 @@ struct DeveloperActivityView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .help(kind.title)
+                .accessibilityLabel(kind.title)
             }
 
             Spacer(minLength: 0)
@@ -79,54 +88,69 @@ struct DeveloperActivityView: View {
             .disabled(service.isRefreshing)
             .help("Refresh developer activity")
         }
+        .animation(.easeOut(duration: 0.18), value: selectedKind)
     }
 
     private func activityDetail(_ activity: DeveloperActivity) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(activity.kind.tint.opacity(0.11))
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(activity.kind.tint.opacity(0.14), lineWidth: 1)
-                if activity.kind == .localhost {
-                    ServerFaviconImage(
-                        faviconData: activity.faviconData,
-                        fallbackTint: activity.kind.tint,
-                        size: 38
-                    )
-                } else {
-                    Image(systemName: activity.kind.symbol)
-                        .font(.system(size: 25, weight: .medium))
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(activity.kind.tint.opacity(0.11))
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(activity.kind.tint.opacity(0.14), lineWidth: 1)
+                    if activity.kind == .localhost {
+                        ServerFaviconImage(
+                            faviconData: activity.faviconData,
+                            fallbackTint: activity.kind.tint,
+                            size: 32
+                        )
+                    } else {
+                        Image(systemName: activity.kind.symbol)
+                            .font(.system(size: 21, weight: .medium))
+                            .foregroundStyle(activity.kind.tint)
+                    }
+                }
+                .frame(width: 54, height: 54)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 7) {
+                        Text(activity.title)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .tracking(-0.35)
+                            .lineLimit(1)
+                        ActivityStateDot(state: activity.state)
+                    }
+
+                    Text(activity.subtitle)
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
                         .foregroundStyle(activity.kind.tint)
-                }
-            }
-            .frame(width: 68, height: 68)
+                        .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 7) {
-                    Text(activity.title)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .tracking(-0.35)
-                    ActivityStateDot(state: activity.state)
+                    Text(activity.detail ?? activity.kind.emptyDescription)
+                        .font(.system(size: 9.5, weight: .regular))
+                        .foregroundStyle(Color.notchMuted)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
 
-                Text(activity.subtitle)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(activity.kind.tint)
-                    .lineLimit(1)
-
-                Text(activity.detail ?? activity.kind.emptyDescription)
-                    .font(.system(size: 9.5, weight: .regular))
-                    .foregroundStyle(Color.notchMuted)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: 8)
+            HStack(spacing: 8) {
+                ActivityStateDot(state: activity.state)
+                Text(activity.state.compactLabel.capitalized)
+                    .font(.system(size: 8.5, weight: .semibold))
+                    .foregroundStyle(activity.state.tint)
 
-            activityActions(activity)
+                Spacer(minLength: 8)
+
+                activityActions(activity)
+            }
+            .frame(minHeight: 28)
         }
         .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -187,20 +211,35 @@ struct DeveloperActivityView: View {
     }
 
     private func gitDetail(_ git: GitActivitySnapshot) -> some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(git.repositoryName)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                HStack(spacing: 8) {
-                    Label(git.branch, systemImage: "arrow.triangle.branch")
-                    Text("\(git.changedFiles) changed")
-                    Text(git.commitSHA)
+        VStack(spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(git.repositoryName)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Label(git.branch, systemImage: "arrow.triangle.branch")
+                        Text("\(git.changedFiles) changed")
+                        Text(git.commitSHA)
+                    }
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color.notchMuted)
                 }
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.notchMuted)
+                Spacer(minLength: 8)
+                ActivityStateDot(state: git.changedFiles == 0 ? .idle : .running)
             }
-            Spacer()
+
             HStack(spacing: 6) {
+                if git.ahead == 0, git.behind == 0 {
+                    Text("Up to date")
+                        .foregroundStyle(Color.notchMuted)
+                } else {
+                    if git.ahead > 0 { Label("\(git.ahead)", systemImage: "arrow.up") }
+                    if git.behind > 0 { Label("\(git.behind)", systemImage: "arrow.down") }
+                }
+
+                Spacer(minLength: 8)
+
                 ActivityIconButton(title: "Pull", icon: "arrow.down") { service.pullGit() }
                 ActivityIconButton(title: "Push", icon: "arrow.up") { service.pushGit() }
                 ActivityIconButton(title: "Copy SHA", icon: "number") {
@@ -211,8 +250,10 @@ struct DeveloperActivityView: View {
                     ActivityIconButton(title: "Open remote", icon: "arrow.up.right.square") { service.openGitRemote() }
                 }
             }
+            .font(.system(size: 8.5, weight: .medium, design: .rounded))
         }
         .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(RoundedRectangle(cornerRadius: 15).fill(Color.white.opacity(0.045)))
     }
