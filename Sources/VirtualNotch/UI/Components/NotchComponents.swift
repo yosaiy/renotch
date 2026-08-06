@@ -78,9 +78,6 @@ struct AttachedNotchShape: Shape {
 }
 
 enum NotchLayout {
-    /// Keeps compact content clear of the attached notch's curved shoulders.
-    static let compactContentHorizontalInset: CGFloat = 40
-
     /// Transparent room inside the NSPanel so the hover shadow is not
     /// clipped by the window boundary.
     static let shadowHorizontalPadding: CGFloat = 24

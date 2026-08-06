@@ -17,6 +17,14 @@ struct SmokeTests {
         settings.expandedWidth = 900
         settings.expandedHeight = 900
         settings.compactCornerRadius = 900
+        settings.compactContentLeadingPadding = 900
+        settings.compactContentTrailingPadding = 900
+        settings.compactContentTopPadding = 900
+        settings.compactContentBottomPadding = 900
+        settings.expandedContentLeadingPadding = 900
+        settings.expandedContentTrailingPadding = 900
+        settings.expandedContentTopPadding = 900
+        settings.expandedContentBottomPadding = 900
         settings.collapseDelay = 0
         settings.clampValues()
         expect(settings.compactWidth == 180, "compact width lower bound")
@@ -24,6 +32,12 @@ struct SmokeTests {
         expect(settings.expandedWidth == 800, "expanded width upper bound")
         expect(settings.expandedHeight == 260, "expanded height upper bound")
         expect(settings.resolvedCompactCornerRadius == 40, "compact corner radius upper bound")
+        expect(settings.resolvedCompactContentLeadingPadding == 100, "compact content leading padding upper bound")
+        expect(settings.resolvedCompactContentTrailingPadding == 100, "compact content trailing padding upper bound")
+        expect(settings.resolvedCompactContentTopPadding == 20, "compact content top padding upper bound")
+        expect(settings.resolvedCompactContentBottomPadding == 20, "compact content bottom padding upper bound")
+        expect(settings.resolvedExpandedContentLeadingPadding == 80, "expanded content leading padding upper bound")
+        expect(settings.resolvedExpandedContentBottomPadding == 80, "expanded content bottom padding upper bound")
         expect(settings.collapseDelay == 0.3, "collapse delay lower bound")
         expect(settings.resolvedCompactContent == .music, "music is the default compact content")
         expect(CompactNotchContent.calendar.section == .calendar, "calendar compact destination")
@@ -51,6 +65,14 @@ struct SmokeTests {
         expect(NotchSettings.codingExpandedWidth == 500, "coding menu width")
         expect(NotchSettings.codingExpandedHeight == 240, "coding menu height")
         expect(NotchSettings.default.resolvedCompactCornerRadius == 18, "default compact corner radius")
+        expect(NotchSettings.default.resolvedCompactContentLeadingPadding == 20, "default compact content leading padding")
+        expect(NotchSettings.default.resolvedCompactContentTrailingPadding == 20, "default compact content trailing padding")
+        expect(NotchSettings.default.resolvedCompactContentTopPadding == 0, "default compact content top padding")
+        expect(NotchSettings.default.resolvedCompactContentBottomPadding == 4, "default compact content bottom padding")
+        expect(NotchSettings.default.resolvedExpandedContentLeadingPadding == 28, "default expanded content leading padding")
+        expect(NotchSettings.default.resolvedExpandedContentTrailingPadding == 28, "default expanded content trailing padding")
+        expect(NotchSettings.default.resolvedExpandedContentTopPadding == 12, "default expanded content top padding")
+        expect(NotchSettings.default.resolvedExpandedContentBottomPadding == 14, "default expanded content bottom padding")
         expect(NotchSettings.dragWidth == 500, "drag width")
         expect(NotchSettings.dragHeight == 120, "drag height")
 
@@ -362,11 +384,17 @@ struct SmokeTests {
         persisted.glassBlurRadius = 24
         persisted.compactContent = .servers
         persisted.compactCornerRadius = 24
+        persisted.compactContentBottomPadding = 6
+        persisted.compactContentLeadingPadding = 48
+        persisted.expandedContentTopPadding = 20
         store.save(persisted)
         expect(store.load().resolvedAppearance == .glassmorphism, "appearance persistence")
         expect(store.load().resolvedGlassBlurRadius == 24, "glass blur persistence")
         expect(store.load().resolvedCompactContent == .servers, "compact content persistence")
         expect(store.load().resolvedCompactCornerRadius == 24, "compact corner radius persistence")
+        expect(store.load().resolvedCompactContentLeadingPadding == 48, "compact content leading padding persistence")
+        expect(store.load().resolvedCompactContentBottomPadding == 6, "compact content bottom padding persistence")
+        expect(store.load().resolvedExpandedContentTopPadding == 20, "expanded content top padding persistence")
 
         var legacyJSON = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(NotchSettings.default)
@@ -375,6 +403,14 @@ struct SmokeTests {
         legacyJSON.removeValue(forKey: "glassBlurRadius")
         legacyJSON.removeValue(forKey: "compactContent")
         legacyJSON.removeValue(forKey: "compactCornerRadius")
+        legacyJSON.removeValue(forKey: "compactContentLeadingPadding")
+        legacyJSON.removeValue(forKey: "compactContentTrailingPadding")
+        legacyJSON.removeValue(forKey: "compactContentTopPadding")
+        legacyJSON.removeValue(forKey: "compactContentBottomPadding")
+        legacyJSON.removeValue(forKey: "expandedContentLeadingPadding")
+        legacyJSON.removeValue(forKey: "expandedContentTrailingPadding")
+        legacyJSON.removeValue(forKey: "expandedContentTopPadding")
+        legacyJSON.removeValue(forKey: "expandedContentBottomPadding")
         let settingsWithoutAppearance = try JSONDecoder().decode(
             NotchSettings.self,
             from: JSONSerialization.data(withJSONObject: legacyJSON)
@@ -383,6 +419,9 @@ struct SmokeTests {
         expect(settingsWithoutAppearance.resolvedGlassBlurRadius == 16, "legacy glass blur default")
         expect(settingsWithoutAppearance.resolvedCompactContent == .music, "legacy compact content default")
         expect(settingsWithoutAppearance.resolvedCompactCornerRadius == 18, "legacy compact corner radius default")
+        expect(settingsWithoutAppearance.resolvedCompactContentLeadingPadding == 20, "legacy compact content leading padding default")
+        expect(settingsWithoutAppearance.resolvedCompactContentBottomPadding == 4, "legacy compact content bottom padding default")
+        expect(settingsWithoutAppearance.resolvedExpandedContentTopPadding == 12, "legacy expanded content top padding default")
 
         let legacySuite = "VirtualNotchLegacyLayoutTests.\(UUID().uuidString)"
         guard let legacyDefaults = UserDefaults(suiteName: legacySuite) else {

@@ -42,7 +42,10 @@ struct CompactNotchView: View {
         .animation(.snappy(duration: 0.35), value: activity.glance?.id)
         .animation(.snappy(duration: 0.35), value: activity.primaryServerActivity.id)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, compactContentHorizontalInset)
+        .padding(.leading, compactContentLeadingInset)
+        .padding(.trailing, compactContentTrailingInset)
+        .padding(.top, model.settings.resolvedCompactContentTopPadding)
+        .padding(.bottom, model.settings.resolvedCompactContentBottomPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
     }
@@ -88,9 +91,11 @@ struct CompactNotchView: View {
         }
     }
 
-    private var compactContentHorizontalInset: CGFloat {
-        let radius = CGFloat(model.settings.resolvedCompactCornerRadius)
-        let effectiveRadius = min(radius, CGFloat(model.settings.compactHeight) / 2)
-        return max(NotchLayout.compactContentHorizontalInset, effectiveRadius + 18)
+    private var compactContentLeadingInset: CGFloat {
+        CGFloat(model.settings.resolvedCompactContentLeadingPadding)
+    }
+
+    private var compactContentTrailingInset: CGFloat {
+        CGFloat(model.settings.resolvedCompactContentTrailingPadding)
     }
 }

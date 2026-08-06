@@ -70,6 +70,9 @@ struct NotchSettings: Codable, Equatable {
     static let compactWidthRange = notchWidthRange
     static let compactHeightRange = 28.0...300.0
     static let compactCornerRadiusRange = 0.0...40.0
+    static let compactContentHorizontalPaddingRange = 0.0...100.0
+    static let compactContentVerticalPaddingRange = 0.0...20.0
+    static let expandedContentPaddingRange = 0.0...80.0
     static let expandedWidthRange = notchWidthRange
     static let expandedHeightRange = 180.0...260.0
     static let codingExpandedWidth = 500.0
@@ -92,6 +95,16 @@ struct NotchSettings: Codable, Equatable {
     var compactContent: CompactNotchContent? = .music
     /// Optional so settings written before adjustable corner radius still decode.
     var compactCornerRadius: Double? = 18
+    /// Optional so settings written before adjustable compact content padding still decode.
+    var compactContentLeadingPadding: Double? = 20
+    var compactContentTrailingPadding: Double? = 20
+    var compactContentTopPadding: Double? = 0
+    var compactContentBottomPadding: Double? = 4
+    /// Optional so settings written before adjustable expanded content padding still decode.
+    var expandedContentLeadingPadding: Double? = 28
+    var expandedContentTrailingPadding: Double? = 28
+    var expandedContentTopPadding: Double? = 12
+    var expandedContentBottomPadding: Double? = 14
     var clipboardHistoryEnabled = true
     var timerNotificationsEnabled = true
     var compactWidth = 220.0
@@ -119,6 +132,38 @@ struct NotchSettings: Codable, Equatable {
         (compactCornerRadius ?? 18).clamped(to: Self.compactCornerRadiusRange)
     }
 
+    var resolvedCompactContentLeadingPadding: Double {
+        (compactContentLeadingPadding ?? 20).clamped(to: Self.compactContentHorizontalPaddingRange)
+    }
+
+    var resolvedCompactContentTrailingPadding: Double {
+        (compactContentTrailingPadding ?? 20).clamped(to: Self.compactContentHorizontalPaddingRange)
+    }
+
+    var resolvedCompactContentTopPadding: Double {
+        (compactContentTopPadding ?? 0).clamped(to: Self.compactContentVerticalPaddingRange)
+    }
+
+    var resolvedCompactContentBottomPadding: Double {
+        (compactContentBottomPadding ?? 4).clamped(to: Self.compactContentVerticalPaddingRange)
+    }
+
+    var resolvedExpandedContentLeadingPadding: Double {
+        (expandedContentLeadingPadding ?? 28).clamped(to: Self.expandedContentPaddingRange)
+    }
+
+    var resolvedExpandedContentTrailingPadding: Double {
+        (expandedContentTrailingPadding ?? 28).clamped(to: Self.expandedContentPaddingRange)
+    }
+
+    var resolvedExpandedContentTopPadding: Double {
+        (expandedContentTopPadding ?? 12).clamped(to: Self.expandedContentPaddingRange)
+    }
+
+    var resolvedExpandedContentBottomPadding: Double {
+        (expandedContentBottomPadding ?? 14).clamped(to: Self.expandedContentPaddingRange)
+    }
+
     mutating func clampValues() {
         compactWidth = compactWidth.clamped(to: Self.compactWidthRange)
         compactHeight = compactHeight.clamped(to: Self.compactHeightRange)
@@ -129,6 +174,14 @@ struct NotchSettings: Codable, Equatable {
         glassBlurRadius = resolvedGlassBlurRadius
         compactContent = resolvedCompactContent
         compactCornerRadius = resolvedCompactCornerRadius
+        compactContentLeadingPadding = resolvedCompactContentLeadingPadding
+        compactContentTrailingPadding = resolvedCompactContentTrailingPadding
+        compactContentTopPadding = resolvedCompactContentTopPadding
+        compactContentBottomPadding = resolvedCompactContentBottomPadding
+        expandedContentLeadingPadding = resolvedExpandedContentLeadingPadding
+        expandedContentTrailingPadding = resolvedExpandedContentTrailingPadding
+        expandedContentTopPadding = resolvedExpandedContentTopPadding
+        expandedContentBottomPadding = resolvedExpandedContentBottomPadding
     }
 }
 

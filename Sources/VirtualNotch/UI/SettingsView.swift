@@ -146,6 +146,46 @@ struct SettingsView: View {
                     suffix: " pt",
                     precision: 0
                 )
+                ValueSlider(
+                    title: "Left padding",
+                    value: paddingBinding(
+                        \.compactContentLeadingPadding,
+                        resolved: \.resolvedCompactContentLeadingPadding
+                    ),
+                    range: NotchSettings.compactContentHorizontalPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Right padding",
+                    value: paddingBinding(
+                        \.compactContentTrailingPadding,
+                        resolved: \.resolvedCompactContentTrailingPadding
+                    ),
+                    range: NotchSettings.compactContentHorizontalPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Top padding",
+                    value: paddingBinding(
+                        \.compactContentTopPadding,
+                        resolved: \.resolvedCompactContentTopPadding
+                    ),
+                    range: NotchSettings.compactContentVerticalPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Bottom padding",
+                    value: paddingBinding(
+                        \.compactContentBottomPadding,
+                        resolved: \.resolvedCompactContentBottomPadding
+                    ),
+                    range: NotchSettings.compactContentVerticalPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
             }
 
             Section("Expanded notch") {
@@ -177,6 +217,46 @@ struct SettingsView: View {
                     title: "Height",
                     value: $model.settings.expandedHeight,
                     range: NotchSettings.expandedHeightRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Left padding",
+                    value: paddingBinding(
+                        \.expandedContentLeadingPadding,
+                        resolved: \.resolvedExpandedContentLeadingPadding
+                    ),
+                    range: NotchSettings.expandedContentPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Right padding",
+                    value: paddingBinding(
+                        \.expandedContentTrailingPadding,
+                        resolved: \.resolvedExpandedContentTrailingPadding
+                    ),
+                    range: NotchSettings.expandedContentPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Top padding",
+                    value: paddingBinding(
+                        \.expandedContentTopPadding,
+                        resolved: \.resolvedExpandedContentTopPadding
+                    ),
+                    range: NotchSettings.expandedContentPaddingRange,
+                    suffix: " pt",
+                    precision: 0
+                )
+                ValueSlider(
+                    title: "Bottom padding",
+                    value: paddingBinding(
+                        \.expandedContentBottomPadding,
+                        resolved: \.resolvedExpandedContentBottomPadding
+                    ),
+                    range: NotchSettings.expandedContentPaddingRange,
                     suffix: " pt",
                     precision: 0
                 )
@@ -253,6 +333,16 @@ struct SettingsView: View {
         Binding(
             get: { model.settings.resolvedCompactCornerRadius },
             set: { model.settings.compactCornerRadius = $0 }
+        )
+    }
+
+    private func paddingBinding(
+        _ setting: WritableKeyPath<NotchSettings, Double?>,
+        resolved: KeyPath<NotchSettings, Double>
+    ) -> Binding<Double> {
+        Binding(
+            get: { model.settings[keyPath: resolved] },
+            set: { model.settings[keyPath: setting] = $0 }
         )
     }
 

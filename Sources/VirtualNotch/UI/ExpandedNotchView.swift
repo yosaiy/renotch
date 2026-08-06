@@ -24,9 +24,10 @@ struct ExpandedNotchView: View {
                 .animation(.easeOut(duration: 0.16), value: model.expandedSectionOverride)
             }
         }
-        .padding(.horizontal, 28)
-        .padding(.top, 12)
-        .padding(.bottom, 14)
+        .padding(.leading, model.settings.resolvedExpandedContentLeadingPadding)
+        .padding(.trailing, model.settings.resolvedExpandedContentTrailingPadding)
+        .padding(.top, model.settings.resolvedExpandedContentTopPadding)
+        .padding(.bottom, model.settings.resolvedExpandedContentBottomPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
