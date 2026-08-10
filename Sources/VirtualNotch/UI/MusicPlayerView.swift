@@ -10,6 +10,15 @@ struct MusicPlayerView: View {
             AlbumArtworkView(artwork: music.artwork, cornerRadius: 12)
                 .frame(width: 82, height: 82)
                 .shadow(color: .black.opacity(0.45), radius: 10, y: 5)
+                .overlay(alignment: .bottomLeading) {
+                    if music.isPlaying, music.activeSource == .appleMusic {
+                        AppleMusicBadge()
+                            .padding(5)
+                            .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    }
+                }
+                .animation(.easeOut(duration: 0.2), value: music.isPlaying)
+                .animation(.easeOut(duration: 0.2), value: music.activeSource)
 
             if let track = music.track {
                 playerDetails(track)
@@ -36,8 +45,6 @@ struct MusicPlayerView: View {
                 }
                 Spacer(minLength: 6)
                 HStack(spacing: 4) {
-                    Text(music.activeSource.displayName)
-                        .foregroundStyle(sourceAccent)
                     Circle()
                         .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
                         .frame(width: 5, height: 5)
@@ -45,6 +52,7 @@ struct MusicPlayerView: View {
                 }
                 .font(.system(size: 8.5, weight: .semibold))
                 .foregroundStyle(.secondary)
+                .accessibilityLabel("Playback status: \(music.isPlaying ? "playing" : "paused")")
             }
 
             HStack(spacing: 7) {
@@ -230,10 +238,46 @@ struct MusicPlayerView: View {
     }
 }
 
+/// Source badge pinned to the bottom-left corner of the album artwork while
+/// Apple Music is playing: the classic beamed-notes glyph with the Apple
+/// Music gradient on a small blurred tile, sized to stay out of the way of
+/// the artwork itself.
+struct AppleMusicBadge: View {
+    /// Tile edge length; every inner metric scales from this so the badge
+    /// can shrink onto compact artwork without losing its proportions.
+    var size: CGFloat = 17
+
+    private var cornerRadius: CGFloat { size * 5 / 17 }
+
+    var body: some View {
+        Image(systemName: "music.note")
+            .font(.system(size: size * 9 / 17, weight: .bold))
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.98, green: 0.35, blue: 0.47),
+                        Color(red: 0.98, green: 0.48, blue: 0.33)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(width: size, height: size)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.black.opacity(0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
+            .accessibilityLabel("Playing from Apple Music")
+    }
+}
+
 struct AlbumArtworkView: View {
     let artwork: NSImage?
     var cornerRadius: CGFloat = 10
-
     var body: some View {
         Group {
             if let artwork {

@@ -64,6 +64,7 @@ struct SmokeTests {
         expect(NotchSettings.default.expandedHeight == 220, "expanded menu height")
         expect(NotchSettings.codingExpandedWidth == 500, "coding menu width")
         expect(NotchSettings.codingExpandedHeight == 240, "coding menu height")
+        expect(NotchSettings.expandedMinWidth == 440, "expanded header minimum width")
         expect(NotchSettings.default.resolvedCompactCornerRadius == 18, "default compact corner radius")
         expect(NotchSettings.default.resolvedCompactContentLeadingPadding == 20, "default compact content leading padding")
         expect(NotchSettings.default.resolvedCompactContentTrailingPadding == 20, "default compact content trailing padding")

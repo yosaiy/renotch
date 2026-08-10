@@ -21,6 +21,9 @@ final class AppModel: ObservableObject {
     @Published var settingsError: String?
     @Published private(set) var expandedSectionOverride: NotchSection?
 
+    /// Delay before the file drop success state collapses back to compact.
+    var successDismissalDelay: TimeInterval = 1.2
+
     let timer: TimerService
     let clipboard: ClipboardService
     let music: MusicService
@@ -129,11 +132,18 @@ final class AppModel: ObservableObject {
         case .expanded:
             if isShowingCodingSection {
                 return NSSize(
-                    width: max(settings.expandedWidth, NotchSettings.codingExpandedWidth),
+                    width: max(
+                        settings.expandedWidth,
+                        NotchSettings.codingExpandedWidth,
+                        NotchSettings.expandedMinWidth
+                    ),
                     height: max(settings.expandedHeight, NotchSettings.codingExpandedHeight)
                 )
             }
-            return NSSize(width: settings.expandedWidth, height: settings.expandedHeight)
+            return NSSize(
+                width: max(settings.expandedWidth, NotchSettings.expandedMinWidth),
+                height: settings.expandedHeight
+            )
         case .fileDrop, .success:
             return NSSize(width: NotchSettings.dragWidth, height: NotchSettings.dragHeight)
         }
@@ -268,11 +278,10 @@ final class AppModel: ObservableObject {
         }
 
         successWorkItem?.cancel()
-        successWorkItem = nil
-        isPinned = true
         selectedSection = .shelf
         expandedSectionOverride = .shelf
-        mode = .expanded
+        isPinned = false
+        mode = .success
         onPanelConfigurationChanged?()
         if result.capacityRejectedCount > 0 {
             showMessage("Shelf is full")
@@ -280,7 +289,18 @@ final class AppModel: ObservableObject {
             showMessage(result.addedCount == 1 ? "Added to shelf" : "Added \(result.addedCount) files")
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        scheduleSuccessDismissal()
         return true
+    }
+
+    private func scheduleSuccessDismissal() {
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.mode == .success else { return }
+            self.expandedSectionOverride = nil
+            self.collapse(force: true)
+        }
+        successWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + successDismissalDelay, execute: work)
     }
 
     func removeShelfItem(_ item: ShelfItem) {

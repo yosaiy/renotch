@@ -150,6 +150,8 @@ struct SectionButton: View {
                     .frame(width: 13)
                 if isSelected {
                     Text(title)
+                        .lineLimit(1)
+                        .fixedSize()
                         .transition(.move(edge: .leading).combined(with: .opacity))
                 }
             }

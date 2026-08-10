@@ -15,6 +15,9 @@ let package = Package(
         .executableTarget(
             name: "VirtualNotch",
             path: "Sources/VirtualNotch",
+            resources: [
+                .copy("Resources/TrayIconTemplate.png")
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

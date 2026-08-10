@@ -38,6 +38,7 @@ final class AppleCalendarService: ObservableObject {
 
     private let eventStore = EKEventStore()
     private var storeObserver: NSObjectProtocol?
+    private var activationObserver: NSObjectProtocol?
 
     var nextEvent: CalendarEventItem? { events.first }
 
@@ -45,10 +46,10 @@ final class AppleCalendarService: ObservableObject {
         switch accessState {
         case .notDetermined: return "Tap to connect Apple Calendar"
         case .requesting: return "Requesting access…"
-        case .denied, .restricted: return "Calendar access required"
+        case .denied, .restricted: return "Enable access in System Settings"
         case .authorized:
-            guard let nextEvent else { return "No events in the next 14 days" }
-            return "\(nextEvent.dayLabel) · \(nextEvent.calendarTitle)"
+            guard let nextEvent else { return "Nothing in the next 14 days" }
+            return "\(nextEvent.dayLabel) · \(nextEvent.shortTime)"
         }
     }
 
@@ -61,11 +62,24 @@ final class AppleCalendarService: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        // TCC toggles made in System Settings do not post .EKEventStoreChanged,
+        // so re-read the authorization status whenever the app comes back to the
+        // front. This keeps a granted/denied state change reflected immediately
+        // without requiring the user to reopen the panel.
+        activationObserver = notificationCenter.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
         if accessState == .authorized { refresh() }
     }
 
     deinit {
-        if let storeObserver { NotificationCenter.default.removeObserver(storeObserver) }
+        let center = NotificationCenter.default
+        if let storeObserver { center.removeObserver(storeObserver) }
+        if let activationObserver { center.removeObserver(activationObserver) }
     }
 
     func requestAccess() {
@@ -77,9 +91,15 @@ final class AppleCalendarService: ObservableObject {
         // appear behind the currently active application.
         NSApp.activate(ignoringOtherApps: true)
 
-        let completion: @Sendable (Bool, Error?) -> Void = { [weak self] _, error in
+        let completion: @Sendable (Bool, Error?) -> Void = { [weak self] granted, error in
             Task { @MainActor in
-                self?.errorMessage = error?.localizedDescription
+                if let error {
+                    self?.errorMessage = error.localizedDescription
+                } else if !granted {
+                    // No error but no grant either: the system considers access
+                    // denied (e.g. stale TCC entry). Point the user to Settings.
+                    self?.errorMessage = "Calendar access is disabled. Enable it in System Settings."
+                }
                 self?.refreshAuthorizationState()
                 self?.refresh()
             }

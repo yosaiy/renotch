@@ -24,7 +24,11 @@ struct CompactNotchView: View {
                     CompactBrowserMediaView(media: media, artwork: browser.mediaArtwork)
                 }
             case .music:
-                CompactMusicView(music: music, message: model.transientMessage)
+                CompactMusicView(
+                    music: music,
+                    message: model.transientMessage,
+                    showsTrackInfo: model.settings.resolvedCompactMusicShowsTrackInfo
+                )
             case .configured:
                 configuredContent
             }
@@ -62,7 +66,11 @@ struct CompactNotchView: View {
     private var configuredContent: some View {
         switch model.settings.resolvedCompactContent {
         case .music:
-            CompactMusicView(music: music, message: model.transientMessage)
+            CompactMusicView(
+                music: music,
+                message: model.transientMessage,
+                showsTrackInfo: model.settings.resolvedCompactMusicShowsTrackInfo
+            )
         case .servers:
             CompactServerView(service: activity, message: model.transientMessage)
         case .timer:

@@ -74,9 +74,10 @@ struct NotchView: View {
         guard !reduceMotion else { return nil }
         switch model.mode {
         case .compact:
-            return .spring(response: 0.28, dampingFraction: 0.88)
+            // Damping near critical: collapses glide in without a bounce tail.
+            return .spring(response: 0.38, dampingFraction: 0.96, blendDuration: 0.1)
         case .expanded:
-            return .spring(response: 0.32, dampingFraction: 0.82, blendDuration: 0.08)
+            return .spring(response: 0.44, dampingFraction: 0.93, blendDuration: 0.12)
         case .fileDrop:
             return .spring(response: 0.28, dampingFraction: 0.72)
         case .success:
@@ -87,7 +88,7 @@ struct NotchView: View {
     private var contentAnimation: Animation? {
         reduceMotion
             ? .easeOut(duration: 0.12)
-            : .easeOut(duration: 0.18).delay(0.08)
+            : .easeOut(duration: 0.22).delay(0.05)
     }
 
     private var contentTransition: AnyTransition {
@@ -187,7 +188,7 @@ struct NotchView: View {
         styledNotchSurface
         .contentShape(notchShape)
         .animation(containerAnimation, value: bottomCornerRadius)
-        .animation(reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.88), value: isHovering)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.94), value: isHovering)
         .animation(.easeInOut(duration: 0.28), value: model.settings.resolvedAppearance)
         .animation(.easeOut(duration: 0.16), value: model.settings.resolvedGlassBlurRadius)
         .onHover { hovering in
@@ -219,7 +220,7 @@ struct NotchView: View {
             withAnimation(containerAnimation) {
                 displayedWidth = target.width
             }
-            try? await Task.sleep(nanoseconds: 40_000_000)
+            try? await Task.sleep(nanoseconds: 20_000_000)
             guard !Task.isCancelled else { return }
             withAnimation(containerAnimation) {
                 displayedHeight = target.height
@@ -228,7 +229,7 @@ struct NotchView: View {
             withAnimation(containerAnimation) {
                 displayedHeight = target.height
             }
-            try? await Task.sleep(nanoseconds: 40_000_000)
+            try? await Task.sleep(nanoseconds: 20_000_000)
             guard !Task.isCancelled else { return }
             withAnimation(containerAnimation) {
                 displayedWidth = target.width

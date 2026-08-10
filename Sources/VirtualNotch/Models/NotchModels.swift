@@ -77,6 +77,9 @@ struct NotchSettings: Codable, Equatable {
     static let expandedHeightRange = 180.0...260.0
     static let codingExpandedWidth = 500.0
     static let codingExpandedHeight = 240.0
+    /// Narrowest width that fits the full expanded header (Dashboard button,
+    /// all section tabs with labels, and the close button) without truncation.
+    static let expandedMinWidth = 440.0
     static let dragWidth = 500.0
     static let dragHeight = 120.0
 
@@ -100,6 +103,8 @@ struct NotchSettings: Codable, Equatable {
     var compactContentTrailingPadding: Double? = 20
     var compactContentTopPadding: Double? = 0
     var compactContentBottomPadding: Double? = 4
+    /// Optional so settings written before the compact track-info toggle still decode.
+    var compactMusicShowsTrackInfo: Bool? = false
     /// Optional so settings written before adjustable expanded content padding still decode.
     var expandedContentLeadingPadding: Double? = 28
     var expandedContentTrailingPadding: Double? = 28
@@ -148,6 +153,10 @@ struct NotchSettings: Codable, Equatable {
         (compactContentBottomPadding ?? 4).clamped(to: Self.compactContentVerticalPaddingRange)
     }
 
+    var resolvedCompactMusicShowsTrackInfo: Bool {
+        compactMusicShowsTrackInfo ?? false
+    }
+
     var resolvedExpandedContentLeadingPadding: Double {
         (expandedContentLeadingPadding ?? 28).clamped(to: Self.expandedContentPaddingRange)
     }
@@ -178,6 +187,7 @@ struct NotchSettings: Codable, Equatable {
         compactContentTrailingPadding = resolvedCompactContentTrailingPadding
         compactContentTopPadding = resolvedCompactContentTopPadding
         compactContentBottomPadding = resolvedCompactContentBottomPadding
+        compactMusicShowsTrackInfo = resolvedCompactMusicShowsTrackInfo
         expandedContentLeadingPadding = resolvedExpandedContentLeadingPadding
         expandedContentTrailingPadding = resolvedExpandedContentTrailingPadding
         expandedContentTopPadding = resolvedExpandedContentTopPadding

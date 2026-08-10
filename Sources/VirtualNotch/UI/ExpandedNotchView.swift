@@ -166,6 +166,8 @@ private struct DashboardHeaderButton: View {
                     .font(.system(size: 10, weight: .semibold))
                 Text("Dashboard")
                     .font(.system(size: 10.5, weight: .semibold))
+                    .lineLimit(1)
+                    .fixedSize()
             }
             .foregroundStyle(isSelected ? .white : Color.white.opacity(0.78))
             .padding(.horizontal, 10)

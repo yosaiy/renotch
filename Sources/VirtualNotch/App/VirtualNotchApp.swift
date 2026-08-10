@@ -6,10 +6,21 @@ struct VirtualNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("Re:notch", systemImage: "capsule.tophalf.filled") {
+        MenuBarExtra {
             MenuBarContent()
                 .environmentObject(appDelegate.model)
+        } label: {
+            Image(nsImage: Self.trayIcon)
         }
+    }
+
+    /// Custom menu bar icon bundled with the package, scaled to menu bar size.
+    private static var trayIcon: NSImage {
+        let url = Bundle.module.url(forResource: "TrayIconTemplate", withExtension: "png")
+        let image = url.flatMap { NSImage(contentsOf: $0) } ?? NSImage()
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        return image
     }
 }
 
@@ -30,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NotificationService.shared.requestAuthorization()
+        UpdateChecker.check(interactive: false)
         _ = try? BrowserIntegrationInstaller.installBundledHost()
         notchController = NotchWindowController(model: model, screenManager: screenManager)
         settingsController = SettingsWindowController(model: model, screenManager: screenManager)
@@ -58,6 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func openSettings() {
         settingsController?.present()
+    }
+
+    func checkForUpdates() {
+        UpdateChecker.check(interactive: true)
     }
 
     func openBrowserIntegration() {
@@ -104,6 +120,7 @@ private struct MenuBarContent: View {
 
         Button("Settings…") { AppDelegate.shared?.openSettings() }
             .keyboardShortcut(",")
+        Button("Check for Updates…") { AppDelegate.shared?.checkForUpdates() }
         Button("Set Up Browser Activity…") { AppDelegate.shared?.openBrowserIntegration() }
         Button("Restart Notch") { AppDelegate.shared?.restartNotch() }
 

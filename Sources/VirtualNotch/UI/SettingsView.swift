@@ -125,6 +125,10 @@ struct SettingsView: View {
             .animation(.easeInOut(duration: 0.24), value: model.settings.resolvedAppearance)
 
             Section("Compact notch") {
+                Toggle("Show song name & artist", isOn: compactTrackInfoBinding)
+                Text("Applies to the compact Music view. When off, only the artwork and the audio waveform are shown.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 ValueSlider(
                     title: "Width",
                     value: $model.settings.compactWidth,
@@ -319,6 +323,13 @@ struct SettingsView: View {
         Binding(
             get: { model.settings.resolvedAppearance },
             set: { model.settings.notchAppearance = $0 }
+        )
+    }
+
+    private var compactTrackInfoBinding: Binding<Bool> {
+        Binding(
+            get: { model.settings.resolvedCompactMusicShowsTrackInfo },
+            set: { model.settings.compactMusicShowsTrackInfo = $0 }
         )
     }
 
