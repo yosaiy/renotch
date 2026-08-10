@@ -9,14 +9,14 @@ enum NotchMode: String, Codable {
 
 enum NotchAppearance: String, Codable, CaseIterable, Identifiable {
     case black
-    case glassmorphism
+    case liquidGlass
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .black: return "Black"
-        case .glassmorphism: return "Glassmorphism"
+        case .liquidGlass: return "Liquid Glass"
         }
     }
 }

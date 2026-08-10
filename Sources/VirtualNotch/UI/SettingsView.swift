@@ -101,7 +101,7 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
 
-                if model.settings.resolvedAppearance == .glassmorphism,
+                if model.settings.resolvedAppearance == .liquidGlass,
                    #unavailable(macOS 26.0) {
                     Picker("Frosted blur", selection: glassMaterialBinding) {
                         ForEach(GlassMaterialLevel.allCases) { level in
@@ -361,7 +361,7 @@ struct SettingsView: View {
         switch model.settings.resolvedAppearance {
         case .black:
             return "A solid black surface that matches the MacBook display cutout."
-        case .glassmorphism:
+        case .liquidGlass:
             if #available(macOS 26.0, *) {
                 return "Apple Liquid Glass that reflects nearby color and light, with native pointer interaction."
             }
@@ -440,7 +440,7 @@ private struct NotchAppearancePreview: View {
         switch appearance {
         case .black:
             shape.fill(.black)
-        case .glassmorphism:
+        case .liquidGlass:
             if #available(macOS 26.0, *) {
                 shape
                     .fill(.clear)

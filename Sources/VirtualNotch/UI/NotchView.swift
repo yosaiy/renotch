@@ -54,7 +54,7 @@ struct NotchView: View {
         switch model.settings.resolvedAppearance {
         case .black:
             return .black.opacity(shadowOpacity)
-        case .glassmorphism:
+        case .liquidGlass:
             return Color(red: 0.02, green: 0.06, blue: 0.1).opacity(shadowOpacity * 0.82)
         }
     }
@@ -165,7 +165,7 @@ struct NotchView: View {
                 .background(Color.black.padding(-50))
                 .mask(notchShape.padding(.horizontal, 0.5))
                 .shadow(color: shadowColor, radius: shadowRadius)
-        case .glassmorphism:
+        case .liquidGlass:
             if #available(macOS 26.0, *) {
                 animatedNotchContent
                     .glassEffect(.regular.interactive(), in: notchShape)

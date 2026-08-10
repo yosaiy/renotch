@@ -381,7 +381,7 @@ struct SmokeTests {
         persisted.compactWidth = 250
         store.save(persisted)
         expect(store.load().compactWidth == 250, "settings persistence")
-        persisted.notchAppearance = .glassmorphism
+        persisted.notchAppearance = .liquidGlass
         persisted.glassBlurRadius = 24
         persisted.compactContent = .servers
         persisted.compactCornerRadius = 24
@@ -389,7 +389,7 @@ struct SmokeTests {
         persisted.compactContentLeadingPadding = 48
         persisted.expandedContentTopPadding = 20
         store.save(persisted)
-        expect(store.load().resolvedAppearance == .glassmorphism, "appearance persistence")
+        expect(store.load().resolvedAppearance == .liquidGlass, "appearance persistence")
         expect(store.load().resolvedGlassBlurRadius == 24, "glass blur persistence")
         expect(store.load().resolvedCompactContent == .servers, "compact content persistence")
         expect(store.load().resolvedCompactCornerRadius == 24, "compact corner radius persistence")
