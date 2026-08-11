@@ -28,7 +28,6 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         return queue
     }()
     private let materializedDropDirectory: URL
-    private var dragExitWorkItem: DispatchWorkItem?
 
     required init(rootView: Content) {
         materializedDropDirectory = FileManager.default.temporaryDirectory
@@ -60,13 +59,9 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
     }
 
     override func draggingExited(_ sender: NSDraggingInfo?) {
-        if let sender {
-            let location = convert(sender.draggingLocation, from: nil)
-            if bounds.insetBy(dx: -2, dy: -2).contains(location) {
-                return
-            }
-        }
-        scheduleDropTargetExit()
+        // Drag exit is sync — let AppModel debounce with its own timer if needed.
+        // This avoids race between host (0.3s) and AppModel (0.15s) timers.
+        onFileDragTargetChanged?(false)
     }
 
     override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
@@ -76,7 +71,6 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
     }
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        dragExitWorkItem?.cancel()
         let pasteboard = sender.draggingPasteboard
 
         let urls = fileURLs(from: pasteboard)
@@ -103,22 +97,11 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
     }
 
     override func concludeDragOperation(_ sender: NSDraggingInfo?) {
-        dragExitWorkItem?.cancel()
         onFileDragTargetChanged?(false)
     }
 
     private func activateDropTarget() {
-        dragExitWorkItem?.cancel()
         onFileDragTargetChanged?(true)
-    }
-
-    private func scheduleDropTargetExit() {
-        dragExitWorkItem?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            self?.onFileDragTargetChanged?(false)
-        }
-        dragExitWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
 
     private func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
