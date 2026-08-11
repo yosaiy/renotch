@@ -10,6 +10,16 @@ struct DeveloperActivityView: View {
            let activity = service.activities.first(where: { $0.kind == selectedKind }) {
             return activity
         }
+        if let selectedKind {
+            return DeveloperActivity(
+                id: "developer-\(selectedKind.rawValue)-idle",
+                kind: selectedKind,
+                title: selectedKind.title,
+                subtitle: "No active \(selectedKind.title.lowercased()) tasks",
+                state: .idle,
+                detail: selectedKind.emptyDescription
+            )
+        }
         return service.primaryActivity
     }
 
