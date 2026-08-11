@@ -1,7 +1,7 @@
 import Foundation
+import UserNotifications
 
-final class TimerService: ObservableObject {
-    @Published private(set) var storedTimer: StoredTimer?
+final class TimerService: ObservableObject {    @Published private(set) var storedTimer: StoredTimer?
     @Published private(set) var remaining: TimeInterval = 0
     @Published private(set) var completionPulse = 0
 
@@ -10,6 +10,7 @@ final class TimerService: ObservableObject {
     private let defaults: UserDefaults
     private let persistenceKey = "virtualNotch.activeTimer.v1"
     private var ticker: Timer?
+    private var scheduledNotificationID: String?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -30,11 +31,11 @@ final class TimerService: ObservableObject {
         return (1 - remaining / duration).clamped(to: 0...1)
     }
 
-    func start(minutes: Int) {
-        start(seconds: TimeInterval(minutes * 60))
+    func start(minutes: Int, notify: Bool = true) {
+        start(seconds: TimeInterval(minutes * 60), notify: notify)
     }
 
-    func start(seconds: TimeInterval) {
+    func start(seconds: TimeInterval, notify: Bool = true) {
         let safeDuration = seconds.clamped(to: 1...86_400)
         storedTimer = StoredTimer(
             duration: safeDuration,
@@ -43,6 +44,18 @@ final class TimerService: ObservableObject {
         )
         remaining = safeDuration
         persist()
+        
+        // Cancel any prior scheduled notification
+        if let id = scheduledNotificationID {
+            NotificationService.shared.cancelScheduled(id)
+        }
+        
+        // Schedule OS-level notification so it fires even if app quits
+        if notify {
+            scheduledNotificationID = NotificationService.shared.scheduleTimerFinished(after: safeDuration)
+        } else {
+            scheduledNotificationID = nil
+        }
     }
 
     func togglePause() {
@@ -50,8 +63,21 @@ final class TimerService: ObservableObject {
         if let pausedRemaining = value.remainingWhenPaused {
             value.endDate = Date().addingTimeInterval(pausedRemaining)
             value.remainingWhenPaused = nil
+            // Re-schedule against remaining time on resume
+            if let id = scheduledNotificationID {
+                NotificationService.shared.cancelScheduled(id)
+            }
+            if let lastID = scheduledNotificationID {
+                scheduledNotificationID = NotificationService.shared.scheduleTimerFinished(after: pausedRemaining)
+                _ = lastID
+            }
         } else {
             value.remainingWhenPaused = max(0, value.endDate.timeIntervalSinceNow)
+            // Cancel pending notification while paused
+            if let id = scheduledNotificationID {
+                NotificationService.shared.cancelScheduled(id)
+                scheduledNotificationID = nil
+            }
         }
         storedTimer = value
         tick()
@@ -62,6 +88,10 @@ final class TimerService: ObservableObject {
         storedTimer = nil
         remaining = 0
         defaults.removeObject(forKey: persistenceKey)
+        if let id = scheduledNotificationID {
+            NotificationService.shared.cancelScheduled(id)
+            scheduledNotificationID = nil
+        }
     }
 
     static func formatted(_ interval: TimeInterval) -> String {

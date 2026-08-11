@@ -13,6 +13,7 @@ swiftc \
     Sources/VirtualNotch/Models/BrowserActivityModels.swift \
     Sources/VirtualNotch/Models/DeveloperActivityGlance.swift \
     Sources/VirtualNotch/Services/SettingsStore.swift \
+    Sources/VirtualNotch/Services/NotificationService.swift \
     Sources/VirtualNotch/Services/TimerService.swift \
     Sources/VirtualNotch/Services/ClipboardService.swift \
     Sources/VirtualNotch/Services/ShelfStore.swift \

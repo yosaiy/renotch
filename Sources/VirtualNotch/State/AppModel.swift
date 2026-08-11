@@ -328,7 +328,7 @@ final class AppModel: ObservableObject {
     }
 
     func startTimer(minutes: Int) {
-        timer.start(minutes: minutes)
+        timer.start(minutes: minutes, notify: settings.timerNotificationsEnabled)
         isPinned = false
         showMessage("Timer started · \(minutes) min")
         collapse(force: true)
@@ -387,9 +387,8 @@ final class AppModel: ObservableObject {
     }
 
     private func handleTimerCompletion() {
-        if settings.timerNotificationsEnabled {
-            NotificationService.shared.timerFinished()
-        }
+        // OS-scheduled notification already fired (see TimerService.start)
+        // Just expand UI to show timer section
         transientMessage = "Timer complete"
         expand(section: .timer, pin: true, preferSelectedSection: true)
     }
