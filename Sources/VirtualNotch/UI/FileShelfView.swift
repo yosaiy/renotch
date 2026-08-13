@@ -32,15 +32,16 @@ struct FileShelfView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            Image(systemName: "tray.full.fill")
-                .font(.system(size: 10, weight: .semibold))
+            Image(systemName: "tray.fill")
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.notchAccent)
 
             Text("File Shelf")
-                .font(.system(size: 10.5, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
 
             Text(model.transientMessage ?? "\(shelf.items.count) / \(shelf.maxItems)")
-                .font(.system(size: 9.5, weight: .medium))
+                .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(model.transientMessage == nil ? Color.notchMuted : Color.notchAccent)
                 .lineLimit(1)
 
@@ -51,23 +52,41 @@ struct FileShelfView: View {
             }
             .disabled(shelf.items.isEmpty)
         }
+        .padding(.bottom, 2)
     }
 
     private var emptyShelf: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "tray.and.arrow.down")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.notchAccent)
-            VStack(alignment: .leading, spacing: 1) {
+        VStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.notchAccent.opacity(0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.notchAccent.opacity(0.35), lineWidth: 1)
+                    )
+                    .frame(width: 48, height: 48)
+
+                Image(systemName: "tray")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(Color.notchAccent)
+            }
+
+            VStack(spacing: 4) {
                 Text("Shelf is empty")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+
                 Text("Drag files onto the notch to add them")
-                    .font(.system(size: 9.5))
+                    .font(.system(size: 11.5, weight: .regular))
                     .foregroundStyle(Color.notchMuted)
             }
-            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                .foregroundStyle(Color.white.opacity(0.12))
+        )
     }
 
     private func shelfButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
