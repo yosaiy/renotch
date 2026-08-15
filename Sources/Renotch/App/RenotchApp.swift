@@ -16,11 +16,24 @@ struct RenotchApp: App {
 
     /// Custom menu bar icon bundled with the package, scaled to menu bar size.
     private static var trayIcon: NSImage {
-        let url = Bundle.module.url(forResource: "TrayIconTemplate", withExtension: "png")
-        let image = url.flatMap { NSImage(contentsOf: $0) } ?? NSImage()
-        image.isTemplate = true
-        image.size = NSSize(width: 18, height: 18)
-        return image
+        if let url = Bundle.main.url(forResource: "TrayIconTemplate", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.isTemplate = true
+            image.size = NSSize(width: 18, height: 18)
+            return image
+        }
+        if let bundleURL = Bundle.main.resourceURL?.appendingPathComponent("Renotch_Renotch.bundle"),
+           let bundle = Bundle(url: bundleURL),
+           let url = bundle.url(forResource: "TrayIconTemplate", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            image.isTemplate = true
+            image.size = NSSize(width: 18, height: 18)
+            return image
+        }
+        let fallback = NSImage(systemSymbolName: "menubar.rectangle", accessibilityDescription: "Re:notch") ?? NSImage()
+        fallback.isTemplate = true
+        fallback.size = NSSize(width: 18, height: 18)
+        return fallback
     }
 }
 

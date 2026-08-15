@@ -64,6 +64,9 @@ if [ -d "$BIN_DIR_ARM64/Renotch_Renotch.bundle" ]; then
 elif [ -d "$BIN_DIR_X86/Renotch_Renotch.bundle" ]; then
     cp -R "$BIN_DIR_X86/Renotch_Renotch.bundle" "$CONTENTS_PATH/Resources/"
 fi
+if [ -f "$PROJECT_DIR/Sources/Renotch/Resources/TrayIconTemplate.png" ]; then
+    cp "$PROJECT_DIR/Sources/Renotch/Resources/TrayIconTemplate.png" "$CONTENTS_PATH/Resources/"
+fi
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_PATH/Info.plist"
 cp -R "$PROJECT_DIR/BrowserExtension" "$CONTENTS_PATH/Resources/BrowserExtension"
 
