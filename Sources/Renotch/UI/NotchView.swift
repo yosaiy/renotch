@@ -187,6 +187,11 @@ struct NotchView: View {
     private var notchSurface: some View {
         styledNotchSurface
         .contentShape(notchShape)
+        .onTapGesture {
+            if model.mode == .compact {
+                model.notchClicked()
+            }
+        }
         .animation(containerAnimation, value: bottomCornerRadius)
         .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.94), value: isHovering)
         .animation(.easeInOut(duration: 0.28), value: model.settings.resolvedAppearance)

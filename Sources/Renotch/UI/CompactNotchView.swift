@@ -51,6 +51,7 @@ struct CompactNotchView: View {
         .padding(.top, model.settings.resolvedCompactContentTopPadding)
         .padding(.bottom, model.settings.resolvedCompactContentBottomPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
         .clipped()
     }
 
