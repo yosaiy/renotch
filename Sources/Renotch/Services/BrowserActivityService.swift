@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 final class BrowserActivityService: ObservableObject {
-    static let notificationName = Notification.Name("com.vincentyosi.virtualnotch.browser-activity")
+    static let notificationName = Notification.Name("com.vincentyosi.renotch.browser-activity")
 
     @Published private(set) var media: BrowserMediaActivity?
     @Published private(set) var mediaArtwork: NSImage?

@@ -4,7 +4,7 @@ final class SettingsStore {
     private let defaults: UserDefaults
     private let key = "virtualNotch.settings.v1"
     private let layoutVersionKey = "virtualNotch.layoutVersion"
-    private let currentLayoutVersion = 8
+    private let currentLayoutVersion = 9
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -24,9 +24,18 @@ final class SettingsStore {
             settings.expandedWidth = NotchSettings.default.expandedWidth
             settings.expandedHeight = NotchSettings.default.expandedHeight
         }
-        if storedLayoutVersion < currentLayoutVersion {
+        if storedLayoutVersion < 8 {
             settings.compactContentLeadingPadding = 20
             settings.compactContentTrailingPadding = 20
+        }
+        if storedLayoutVersion < currentLayoutVersion {
+            settings.compactWidth = NotchSettings.default.compactWidth
+            settings.compactHeight = NotchSettings.default.compactHeight
+            settings.compactCornerRadius = NotchSettings.default.compactCornerRadius
+            settings.compactContentLeadingPadding = NotchSettings.default.compactContentLeadingPadding
+            settings.compactContentTrailingPadding = NotchSettings.default.compactContentTrailingPadding
+            settings.compactContentTopPadding = NotchSettings.default.compactContentTopPadding
+            settings.compactContentBottomPadding = NotchSettings.default.compactContentBottomPadding
         }
         settings.clampValues()
         save(settings)

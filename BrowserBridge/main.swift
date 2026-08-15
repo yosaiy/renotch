@@ -20,7 +20,7 @@ while let header = readExactly(4, from: input) {
     }
 
     DistributedNotificationCenter.default().postNotificationName(
-        Notification.Name("com.vincentyosi.virtualnotch.browser-activity"),
+        Notification.Name("com.vincentyosi.renotch.browser-activity"),
         object: nil,
         userInfo: ["payload": payloadString],
         deliverImmediately: true

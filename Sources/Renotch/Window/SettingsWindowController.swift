@@ -23,7 +23,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.level = .floating
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         window.animationBehavior = .documentWindow
-        window.setFrameAutosaveName("VirtualNotch.SettingsWindow")
+        window.setFrameAutosaveName("Renotch.SettingsWindow")
         window.center()
 
         super.init(window: window)

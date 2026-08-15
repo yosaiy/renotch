@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 enum BrowserIntegrationInstaller {
-    static let hostName = "com.vincentyosi.virtualnotch.browser_bridge"
+    static let hostName = "com.vincentyosi.renotch.browser_bridge"
     static let extensionID = "lekadelliioeecihidklkhmbmmadcklh"
 
     private static let hostDirectories = [
@@ -21,7 +21,7 @@ enum BrowserIntegrationInstaller {
         guard let executableDirectory = Bundle.main.executableURL?.deletingLastPathComponent() else {
             throw BrowserIntegrationError.missingExecutableDirectory
         }
-        let bridgeURL = executableDirectory.appendingPathComponent("VirtualNotchBrowserBridge")
+        let bridgeURL = executableDirectory.appendingPathComponent("RenotchBrowserBridge")
         guard FileManager.default.isExecutableFile(atPath: bridgeURL.path) else {
             throw BrowserIntegrationError.missingBridge
         }

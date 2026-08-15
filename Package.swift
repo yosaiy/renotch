@@ -3,18 +3,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "VirtualNotch",
+    name: "Renotch",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "VirtualNotch", targets: ["VirtualNotch"]),
-        .executable(name: "VirtualNotchBrowserBridge", targets: ["VirtualNotchBrowserBridge"])
+        .executable(name: "Renotch", targets: ["Renotch"]),
+        .executable(name: "RenotchBrowserBridge", targets: ["RenotchBrowserBridge"])
     ],
     targets: [
         .executableTarget(
-            name: "VirtualNotch",
-            path: "Sources/VirtualNotch",
+            name: "Renotch",
+            path: "Sources/Renotch",
             resources: [
                 .copy("Resources/TrayIconTemplate.png")
             ],
@@ -23,7 +23,7 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "VirtualNotchBrowserBridge",
+            name: "RenotchBrowserBridge",
             path: "BrowserBridge",
             swiftSettings: [
                 .swiftLanguageMode(.v5)

@@ -23,16 +23,17 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
 
     private let filePromiseQueue: OperationQueue = {
         let queue = OperationQueue()
-        queue.name = "VirtualNotch.FilePromises"
+        queue.name = "Renotch.FilePromises"
         queue.maxConcurrentOperationCount = 2
         return queue
     }()
-    private let materializedDropDirectory: URL
+    private let materializedDropDirectory: URL = {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("RenotchDrops", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    }()
 
     required init(rootView: Content) {
-        materializedDropDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("VirtualNotchDrops", isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         super.init(rootView: rootView)
         try? FileManager.default.createDirectory(
             at: materializedDropDirectory,

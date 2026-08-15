@@ -1,4 +1,4 @@
-const HOST_NAME = "com.vincentyosi.virtualnotch.browser_bridge";
+const HOST_NAME = "com.vincentyosi.renotch.browser_bridge";
 const activeMediaSessions = new Map();
 let nativePort;
 let reconnectTimer;

@@ -97,10 +97,10 @@ struct NotchSettings: Codable, Equatable {
     /// Optional so settings written before selectable compact content still decode.
     var compactContent: CompactNotchContent? = .music
     /// Optional so settings written before adjustable corner radius still decode.
-    var compactCornerRadius: Double? = 18
+    var compactCornerRadius: Double? = 11
     /// Optional so settings written before adjustable compact content padding still decode.
-    var compactContentLeadingPadding: Double? = 20
-    var compactContentTrailingPadding: Double? = 20
+    var compactContentLeadingPadding: Double? = 19
+    var compactContentTrailingPadding: Double? = 19
     var compactContentTopPadding: Double? = 0
     var compactContentBottomPadding: Double? = 4
     /// Optional so settings written before the compact track-info toggle still decode.
@@ -112,8 +112,8 @@ struct NotchSettings: Codable, Equatable {
     var expandedContentBottomPadding: Double? = 14
     var clipboardHistoryEnabled = true
     var timerNotificationsEnabled = true
-    var compactWidth = 220.0
-    var compactHeight = 36.0
+    var compactWidth = 335.0
+    var compactHeight = 30.0
     var expandedWidth = 460.0
     var expandedHeight = 220.0
     var collapseDelay = 0.45
@@ -134,15 +134,15 @@ struct NotchSettings: Codable, Equatable {
     }
 
     var resolvedCompactCornerRadius: Double {
-        (compactCornerRadius ?? 18).clamped(to: Self.compactCornerRadiusRange)
+        (compactCornerRadius ?? 11).clamped(to: Self.compactCornerRadiusRange)
     }
 
     var resolvedCompactContentLeadingPadding: Double {
-        (compactContentLeadingPadding ?? 20).clamped(to: Self.compactContentHorizontalPaddingRange)
+        (compactContentLeadingPadding ?? 19).clamped(to: Self.compactContentHorizontalPaddingRange)
     }
 
     var resolvedCompactContentTrailingPadding: Double {
-        (compactContentTrailingPadding ?? 20).clamped(to: Self.compactContentHorizontalPaddingRange)
+        (compactContentTrailingPadding ?? 19).clamped(to: Self.compactContentHorizontalPaddingRange)
     }
 
     var resolvedCompactContentTopPadding: Double {

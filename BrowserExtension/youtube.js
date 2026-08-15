@@ -1,6 +1,6 @@
 (() => {
-if (globalThis.__virtualNotchBrowserActivityInstalled) return;
-globalThis.__virtualNotchBrowserActivityInstalled = true;
+if (globalThis.__renotchBrowserActivityInstalled) return;
+globalThis.__renotchBrowserActivityInstalled = true;
 
 const sessionID = crypto.randomUUID();
 let attachedVideo;

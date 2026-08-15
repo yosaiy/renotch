@@ -87,7 +87,7 @@ final class MusicService: ObservableObject {
     @Published private(set) var shuffleEnabled = false
     @Published private(set) var repeatMode: MusicRepeatMode = .off
 
-    private let scriptQueue = DispatchQueue(label: "com.vincentyosi.virtualnotch.music")
+    private let scriptQueue = DispatchQueue(label: "com.vincentyosi.renotch.music")
     private var pollingTimer: Timer?
     private var refreshInFlight = false
     private var snapshots: [MusicSource: MusicSnapshot] = [:]
@@ -398,7 +398,7 @@ final class MusicService: ObservableObject {
 
     private func loadAppleMusicArtwork(for trackID: String) {
         let path = FileManager.default.temporaryDirectory
-            .appendingPathComponent("virtual-notch-artwork-\(UUID().uuidString)")
+            .appendingPathComponent("renotch-artwork-\(UUID().uuidString)")
             .path
         let escapedPath = path.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")

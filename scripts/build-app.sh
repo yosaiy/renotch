@@ -33,19 +33,36 @@ if [ -z "$SIGN_IDENTITY" ]; then
 fi
 
 cd "$PROJECT_DIR"
-swift build -c "$BUILD_CONFIGURATION" --product VirtualNotch
-swift build -c "$BUILD_CONFIGURATION" --product VirtualNotchBrowserBridge
-BIN_DIR="$(swift build -c "$BUILD_CONFIGURATION" --show-bin-path)"
+# Build for Apple Silicon (arm64) and Intel (x86_64)
+swift build -c "$BUILD_CONFIGURATION" --triple arm64-apple-macosx --product Renotch
+swift build -c "$BUILD_CONFIGURATION" --triple arm64-apple-macosx --product RenotchBrowserBridge
+swift build -c "$BUILD_CONFIGURATION" --triple x86_64-apple-macosx --product Renotch
+swift build -c "$BUILD_CONFIGURATION" --triple x86_64-apple-macosx --product RenotchBrowserBridge
+
+BIN_DIR_ARM64="$(swift build -c "$BUILD_CONFIGURATION" --triple arm64-apple-macosx --show-bin-path)"
+BIN_DIR_X86="$(swift build -c "$BUILD_CONFIGURATION" --triple x86_64-apple-macosx --show-bin-path)"
 
 rm -rf "$APP_PATH"
 mkdir -p "$CONTENTS_PATH/MacOS" "$CONTENTS_PATH/Resources"
-cp "$BIN_DIR/VirtualNotch" "$CONTENTS_PATH/MacOS/VirtualNotch"
-cp "$BIN_DIR/VirtualNotchBrowserBridge" "$CONTENTS_PATH/MacOS/VirtualNotchBrowserBridge"
+
+# Create Universal binaries supporting both Apple Silicon and Intel Macs
+lipo -create \
+    "$BIN_DIR_ARM64/Renotch" \
+    "$BIN_DIR_X86/Renotch" \
+    -output "$CONTENTS_PATH/MacOS/Renotch"
+
+lipo -create \
+    "$BIN_DIR_ARM64/RenotchBrowserBridge" \
+    "$BIN_DIR_X86/RenotchBrowserBridge" \
+    -output "$CONTENTS_PATH/MacOS/RenotchBrowserBridge"
+
 # Bundle.module resources (menu bar icon, etc.). Placed in Contents/Resources:
 # codesign --deep rejects the plist-less SwiftPM bundle as nested code in
 # Contents/MacOS, and Bundle.module looks in Resources too.
-if [ -d "$BIN_DIR/VirtualNotch_VirtualNotch.bundle" ]; then
-    cp -R "$BIN_DIR/VirtualNotch_VirtualNotch.bundle" "$CONTENTS_PATH/Resources/"
+if [ -d "$BIN_DIR_ARM64/Renotch_Renotch.bundle" ]; then
+    cp -R "$BIN_DIR_ARM64/Renotch_Renotch.bundle" "$CONTENTS_PATH/Resources/"
+elif [ -d "$BIN_DIR_X86/Renotch_Renotch.bundle" ]; then
+    cp -R "$BIN_DIR_X86/Renotch_Renotch.bundle" "$CONTENTS_PATH/Resources/"
 fi
 cp "$PROJECT_DIR/Resources/Info.plist" "$CONTENTS_PATH/Info.plist"
 cp -R "$PROJECT_DIR/BrowserExtension" "$CONTENTS_PATH/Resources/BrowserExtension"
@@ -62,16 +79,11 @@ fi
 
 echo "Signing with identity: $SIGN_IDENTITY"
 
-# Sign binaries individually first: avoids deep-signing failures and keeps the
-# stable identity attached to each Mach-O (what TCC keys privacy grants on).
-codesign --force --options runtime --sign "$SIGN_IDENTITY" "$BIN_DIR/VirtualNotch"
-codesign --force --options runtime --sign "$SIGN_IDENTITY" "$BIN_DIR/VirtualNotchBrowserBridge"
-
 codesign \
     --force \
     --deep \
     --options runtime \
-    --entitlements "$PROJECT_DIR/Resources/VirtualNotch.entitlements" \
+    --entitlements "$PROJECT_DIR/Resources/Renotch.entitlements" \
     --sign "$SIGN_IDENTITY" \
     "$APP_PATH"
 
