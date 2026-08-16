@@ -57,7 +57,7 @@ It surfaces what you're doing **without interrupting what you're doing.**
 
 ### Download
 
-Download the latest release and move `Re:notch.app` to your `Applications` folder.
+Download the latest release, extract the zip (or let Safari do it automatically), and double-click `Re:notch.app` to run.
 
 **[Download the latest release →](https://github.com/yosaiy/renotch/releases/latest)**
 
@@ -141,8 +141,8 @@ swift build -c release
 # Build app
 ./scripts/build-app.sh
 
-# Build DMG
-./scripts/build-dmg.sh
+# Build release zip (for GitHub Releases)
+./scripts/build-zip.sh
 
 # Run tests
 ./scripts/test.sh
