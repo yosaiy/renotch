@@ -97,15 +97,53 @@ final class MusicService: ObservableObject {
 
     init() {
         refresh()
-        pollingTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.refresh()
-        }
-        pollingTimer?.tolerance = 0.2
+        setupDistributedObservers()
+        updatePollingTimerState()
     }
 
     deinit {
         pollingTimer?.invalidate()
         artworkDataTask?.cancel()
+        DistributedNotificationCenter.default().removeObserver(self)
+    }
+
+    private func setupDistributedObservers() {
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(
+            forName: NSNotification.Name("com.apple.Music.playerInfo"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.refresh()
+        }
+        center.addObserver(
+            forName: NSNotification.Name("com.spotify.client.PlaybackStateChanged"),
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.refresh()
+        }
+    }
+
+    func updatePollingTimerState() {
+        if isPlaying {
+            guard pollingTimer == nil else { return }
+            pollingTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                self?.refresh()
+            }
+            pollingTimer?.tolerance = 0.25
+        } else {
+            pollingTimer?.invalidate()
+            pollingTimer = nil
+        }
+    }
+
+    func pause() {
+        pollingTimer?.invalidate()
+        pollingTimer = nil
+    }
+
+    func resume() {
+        refresh()
+        updatePollingTimerState()
     }
 
     var isPlaying: Bool { playbackState == .playing }
@@ -350,6 +388,7 @@ final class MusicService: ObservableObject {
         playbackActivationDate = activationDates[selectedSource] ?? .distantPast
         shuffleEnabled = selectedSnapshot?.shuffleEnabled ?? false
         repeatMode = selectedSnapshot?.repeatMode ?? .off
+        updatePollingTimerState()
 
         if previousTrackID != track?.id {
             artworkDataTask?.cancel()

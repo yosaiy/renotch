@@ -88,6 +88,8 @@ final class AppModel: ObservableObject {
                     self?.onPanelConfigurationChanged?()
                 }
             }
+        setupPowerManagementObservers()
+        activity.setRefreshInterval(isExpanded ? 4.0 : 15.0)
     }
 
     var isExpanded: Bool {
@@ -199,6 +201,7 @@ final class AppModel: ObservableObject {
         if pin { isPinned = true }
         guard mode != .expanded else { return }
         mode = .expanded
+        activity.setRefreshInterval(4.0)
         onPanelConfigurationChanged?()
     }
 
@@ -210,6 +213,7 @@ final class AppModel: ObservableObject {
         expandedSectionOverride = nil
         guard mode != .compact else { return }
         mode = .compact
+        activity.setRefreshInterval(15.0)
         onPanelConfigurationChanged?()
     }
 
@@ -404,5 +408,31 @@ final class AppModel: ObservableObject {
             isApplyingLoginSetting = false
             settingsError = "Launch at login could not be changed: \(error.localizedDescription)"
         }
+    }
+
+    private func setupPowerManagementObservers() {
+        let center = NSWorkspace.shared.notificationCenter
+        center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.pauseServices()
+            }
+        }
+        center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                self?.resumeServices()
+            }
+        }
+    }
+
+    private func pauseServices() {
+        music.pause()
+        activity.pause()
+        clipboard.pause()
+    }
+
+    private func resumeServices() {
+        music.resume()
+        activity.resume()
+        clipboard.resume()
     }
 }

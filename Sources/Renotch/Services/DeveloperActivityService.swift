@@ -59,12 +59,35 @@ final class DeveloperActivityService: ObservableObject {
         glanceWorkItem?.cancel()
     }
 
+    private var currentInterval: TimeInterval = 4.0
+
     func start() {
-        guard refreshTimer == nil else { return }
+        startTimer(interval: currentInterval)
+    }
+
+    func setRefreshInterval(_ interval: TimeInterval) {
+        guard currentInterval != interval else { return }
+        currentInterval = interval
+        startTimer(interval: interval)
+    }
+
+    private func startTimer(interval: TimeInterval) {
+        refreshTimer?.invalidate()
         refresh()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
+        timer.tolerance = 0.5
+        refreshTimer = timer
+    }
+
+    func pause() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    func resume() {
+        startTimer(interval: currentInterval)
     }
 
     func refresh() {

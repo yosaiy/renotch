@@ -29,10 +29,21 @@ final class ClipboardService: ObservableObject {
             monitor = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                 self?.inspectPasteboard()
             }
-            monitor?.tolerance = 0.25
+            monitor?.tolerance = 0.3
         } else {
             monitor?.invalidate()
             monitor = nil
+        }
+    }
+
+    func pause() {
+        monitor?.invalidate()
+        monitor = nil
+    }
+
+    func resume() {
+        if isEnabled {
+            start(enabled: true)
         }
     }
 
