@@ -70,7 +70,7 @@ enum AdaptiveMediaArbitrator {
             return musicActivation >= browserActivation ? .music : .browser
         }
         if musicIsPlaying { return .music }
-        if browserIsPlaying || browserAvailable { return .browser }
+        if browserIsPlaying { return .browser }
         return nil
     }
 }

@@ -69,9 +69,9 @@ final class AppModel: ObservableObject {
         isPinned = !didOnboard
 
         clipboard.start(enabled: settings.clipboardHistoryEnabled)
-        timer.onCompletion = { [weak self] in
+        timer.onCompletion = { [weak self] completedMode in
             Task { @MainActor in
-                self?.handleTimerCompletion()
+                self?.handleTimerCompletion(completedMode: completedMode)
             }
         }
         browserActivityCancellable = browser.objectWillChange.sink { [weak self] _ in
@@ -331,15 +331,30 @@ final class AppModel: ObservableObject {
         collapse(force: true)
     }
 
-    func startTimer(minutes: Int) {
-        timer.start(minutes: minutes, notify: settings.timerNotificationsEnabled)
+    func startPomodoro(focusMinutes: Int? = nil, breakMinutes: Int? = nil) {
+        let fMin = focusMinutes ?? timer.focusMinutes
+        let bMin = breakMinutes ?? timer.breakMinutes
+        timer.startPomodoro(
+            focusMinutes: fMin,
+            breakMinutes: bMin,
+            autoAdvance: true,
+            notify: settings.timerNotificationsEnabled
+        )
         isPinned = false
-        showMessage("Timer started · \(minutes) min")
+        showMessage("Focus started · \(fMin)m (Break \(bMin)m next)")
         collapse(force: true)
     }
 
-    func startCustomTimer() {
-        startTimer(minutes: customTimerMinutes)
+    func startTimer(minutes: Int, mode: PomodoroMode? = nil) {
+        let activeMode = mode ?? timer.selectedMode
+        timer.start(minutes: minutes, mode: activeMode, notify: settings.timerNotificationsEnabled)
+        isPinned = false
+        showMessage("\(activeMode.title) timer started · \(minutes) min")
+        collapse(force: true)
+    }
+
+    func startCustomTimer(mode: PomodoroMode? = nil) {
+        startTimer(minutes: customTimerMinutes, mode: mode)
     }
 
     func copyClipboardItem(_ item: ClipboardItem) {
@@ -390,10 +405,20 @@ final class AppModel: ObservableObject {
         onPanelConfigurationChanged?()
     }
 
-    private func handleTimerCompletion() {
-        // OS-scheduled notification already fired (see TimerService.start)
-        // Just expand UI to show timer section
-        transientMessage = "Timer complete"
+    private func handleTimerCompletion(completedMode: PomodoroMode) {
+        let breakMin = timer.breakMinutes
+        let isAutoBreak = completedMode == .focus && timer.isActive && timer.currentMode == .breakTime
+        if settings.timerNotificationsEnabled {
+            NotificationService.shared.playTimerSound()
+            NotificationService.shared.timerFinished(
+                mode: completedMode,
+                breakMinutes: breakMin,
+                autoAdvance: isAutoBreak
+            )
+        }
+        transientMessage = isAutoBreak
+            ? "Focus complete · \(breakMin)m Break started"
+            : (completedMode == .focus ? "Focus complete!" : "Break complete!")
         expand(section: .timer, pin: true, preferSelectedSection: true)
     }
 

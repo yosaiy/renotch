@@ -59,7 +59,9 @@ struct CompactNotchView: View {
         AdaptiveCompactArbitrator.resolve(
             downloadAvailable: browser.activeDownload != nil,
             codingGlanceAvailable: activity.glance != nil,
-            mediaSource: model.activeMediaSource
+            mediaSource: model.activeMediaSource,
+            configuredContent: model.settings.resolvedCompactContent,
+            isTimerActive: timer.isActive
         )
     }
 
@@ -84,19 +86,17 @@ struct CompactNotchView: View {
     }
 
     private var presentationID: String {
-        if let download = browser.activeDownload {
-            return "download-\(download.id)"
-        }
-        if let glance = activity.glance {
-            return "coding-glance-\(glance.id.uuidString)"
-        }
-        switch model.activeMediaSource {
-        case .browser:
-            return "media-\(browser.media?.sessionID ?? "unknown")"
+        switch livePresentation {
+        case .download:
+            return "download-\(browser.activeDownload?.id ?? 0)"
+        case .codingGlance:
+            return "coding-glance-\(activity.glance?.id.uuidString ?? "")"
+        case .browserMedia:
+            return "browser-media-\(browser.media?.sessionID ?? "unknown")"
         case .music:
             return "music-\(music.track?.id ?? "unknown")"
-        case nil:
-            return "configured-\(model.settings.resolvedCompactContent.rawValue)"
+        case .configured:
+            return "configured-\(model.settings.resolvedCompactContent.rawValue)-\(timer.isActive ? "active" : "idle")"
         }
     }
 

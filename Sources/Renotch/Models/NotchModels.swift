@@ -331,12 +331,55 @@ struct ShelfItem: Identifiable, Hashable {
     }
 }
 
+enum PomodoroMode: String, Codable, CaseIterable, Identifiable {
+    case focus
+    case breakTime
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .focus: return "Focus"
+        case .breakTime: return "Break"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .focus: return "timer"
+        case .breakTime: return "cup.and.saucer.fill"
+        }
+    }
+
+    var presets: [Int] {
+        switch self {
+        case .focus: return [15, 25, 45, 60]
+        case .breakTime: return [5, 10, 15, 20]
+        }
+    }
+
+    var defaultMinutes: Int {
+        switch self {
+        case .focus: return 25
+        case .breakTime: return 5
+        }
+    }
+}
+
 struct StoredTimer: Codable, Equatable {
     var duration: TimeInterval
     var endDate: Date
     var remainingWhenPaused: TimeInterval?
+    var mode: PomodoroMode?
+    var focusMinutes: Int?
+    var breakMinutes: Int?
+    var autoAdvance: Bool?
 
     var isPaused: Bool { remainingWhenPaused != nil }
+    var resolvedMode: PomodoroMode { mode ?? .focus }
+    var resolvedFocusMinutes: Int { focusMinutes ?? 25 }
+    var resolvedBreakMinutes: Int { breakMinutes ?? 5 }
+    var isAutoAdvance: Bool { autoAdvance ?? true }
 }
 
 extension Comparable {

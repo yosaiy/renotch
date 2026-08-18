@@ -91,12 +91,12 @@ struct DashboardView: View {
     private var timerRowData: DashboardRow.RowData {
         DashboardRow.RowData(
             section: .timer,
-            icon: "timer",
-            title: "Timer",
+            icon: timer.currentMode.icon,
+            title: timer.isActive ? timer.currentMode.title : "Pomodoro",
             value: timer.isActive
                 ? TimerService.formatted(timer.remaining)
                 : "No active timer",
-            detail: timer.isPaused ? "Paused" : (timer.isActive ? "Running" : "Ready"),
+            detail: timer.isPaused ? "Paused" : (timer.isActive ? "Running" : "Focus & Break"),
             isActive: timer.isActive
         )
     }
@@ -181,7 +181,7 @@ struct DashboardView: View {
                 Circle()
                     .trim(from: 0, to: timer.progress)
                     .stroke(
-                        Color.notchAccent,
+                        timer.currentMode.tint,
                         style: StrokeStyle(lineWidth: 1.5, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))

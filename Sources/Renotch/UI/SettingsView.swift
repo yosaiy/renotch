@@ -296,7 +296,7 @@ struct SettingsView: View {
             }
 
             Section("About") {
-                LabeledContent("Re:notch", value: "1.0.0")
+                LabeledContent("Re:notch", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0")
                 Text("No account, cloud sync, or analytics. Your data stays on this Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

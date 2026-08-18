@@ -122,7 +122,7 @@ struct ExpandedNotchView: View {
                 Text(TimerService.formatted(timer.remaining))
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(Color.notchAccent)
+                    .foregroundStyle(timer.currentMode.tint)
             }
 
             Button {

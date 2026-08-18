@@ -20,10 +20,17 @@ enum AdaptiveCompactArbitrator {
     static func resolve(
         downloadAvailable: Bool,
         codingGlanceAvailable: Bool,
-        mediaSource: AdaptiveMediaSource?
+        mediaSource: AdaptiveMediaSource?,
+        configuredContent: CompactNotchContent = .music,
+        isTimerActive: Bool = false
     ) -> AdaptiveCompactPresentation {
         if downloadAvailable { return .download }
         if codingGlanceAvailable { return .codingGlance }
+        if configuredContent != .music {
+            if isTimerActive || mediaSource == nil {
+                return .configured
+            }
+        }
         switch mediaSource {
         case .browser: return .browserMedia
         case .music: return .music

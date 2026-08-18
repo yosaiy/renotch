@@ -21,7 +21,7 @@ struct QuickActionsView: View {
                 openScreenshots()
             }
             ActionTile(title: "Focus 25m", icon: "timer", tint: .notchAccent) {
-                model.startTimer(minutes: 25)
+                model.startTimer(minutes: 25, mode: .focus)
             }
             ActionTile(title: "Clear", icon: "trash") {
                 model.clipboard.clear()

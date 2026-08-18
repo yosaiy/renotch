@@ -155,14 +155,28 @@ private struct TimerMenuSection: View {
 
     var body: some View {
         if timer.isActive {
-            Button("Timer · \(TimerService.formatted(timer.remaining))") {
+            Button("\(timer.currentMode.title) · \(TimerService.formatted(timer.remaining))") {
                 AppDelegate.shared?.showNotch()
                 model.expand(section: .timer, pin: true)
             }
-            Button(timer.isPaused ? "Resume Timer" : "Pause Timer") {
+            Button(timer.isPaused ? "Resume \(timer.currentMode.title)" : "Pause \(timer.currentMode.title)") {
                 timer.togglePause()
             }
+            Button("Skip to \(timer.currentMode == .focus ? "Break" : "Focus")") {
+                timer.skip()
+            }
             Button("Cancel Timer", role: .destructive) { timer.cancel() }
+            Divider()
+        } else {
+            Button("Start Pomodoro (\(timer.focusMinutes)m Focus + \(timer.breakMinutes)m Break)") {
+                model.startPomodoro()
+            }
+            Button("Start Focus (\(timer.focusMinutes)m)") {
+                model.startTimer(minutes: timer.focusMinutes, mode: .focus)
+            }
+            Button("Start Break (\(timer.breakMinutes)m)") {
+                model.startTimer(minutes: timer.breakMinutes, mode: .breakTime)
+            }
             Divider()
         }
     }

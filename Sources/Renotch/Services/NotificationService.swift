@@ -1,22 +1,66 @@
+import AppKit
+import Foundation
 import UserNotifications
 
-final class NotificationService {
+final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
 
-    private init() {}
+    private var center: UNUserNotificationCenter? {
+        guard Bundle.main.bundleIdentifier != nil else { return nil }
+        return UNUserNotificationCenter.current()
+    }
+
+    private override init() {
+        super.init()
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().delegate = self
+        }
+    }
 
     func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        center?.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    }
+
+    // Deliver banners and sound even when app is frontmost or accessory
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .badge, .list])
+    }
+
+    func playTimerSound() {
+        if let sound = NSSound(named: "Glass") ?? NSSound(named: "Ping") {
+            sound.play()
+        } else {
+            NSSound.beep()
+        }
     }
 
     /// Schedule an OS-level notification so it fires even if the app quits or
     /// the Mac sleeps. Returns the request identifier (needed to cancel).
     @discardableResult
-    func scheduleTimerFinished(after interval: TimeInterval) -> String {
+    func scheduleTimerFinished(
+        after interval: TimeInterval,
+        mode: PomodoroMode = .focus,
+        breakMinutes: Int = 5,
+        autoAdvance: Bool = true
+    ) -> String {
         let id = "virtual-notch-timer-\(UUID().uuidString)"
+        guard let center else { return id }
+
         let content = UNMutableNotificationContent()
-        content.title = "Timer complete"
-        content.body = "Your Re:notch timer has finished."
+        switch mode {
+        case .focus:
+            content.title = "Focus Session Finished"
+            content.body = autoAdvance
+                ? "Great work! Starting \(breakMinutes)-minute break now."
+                : "Great work! Time to take a break."
+        case .breakTime:
+            content.title = "Break Finished"
+            content.body = "Ready to start your next focus session?"
+        }
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -24,19 +68,30 @@ final class NotificationService {
             content: content,
             trigger: UNTimeIntervalNotificationTrigger(timeInterval: max(0.5, interval), repeats: false)
         )
-        UNUserNotificationCenter.current().add(request)
+        center.add(request)
         return id
     }
 
     func cancelScheduled(_ id: String) {
         guard !id.isEmpty else { return }
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        center?.removePendingNotificationRequests(withIdentifiers: [id])
     }
 
-    func timerFinished() {
+    func timerFinished(mode: PomodoroMode = .focus, breakMinutes: Int = 5, autoAdvance: Bool = true) {
+        playTimerSound()
+
+        guard let center else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Timer complete"
-        content.body = "Your Re:notch timer has finished."
+        switch mode {
+        case .focus:
+            content.title = "Focus Session Finished"
+            content.body = autoAdvance
+                ? "Great work! Starting \(breakMinutes)-minute break now."
+                : "Great work! Time to take a break."
+        case .breakTime:
+            content.title = "Break Finished"
+            content.body = "Ready to start your next focus session?"
+        }
         content.sound = .default
 
         let request = UNNotificationRequest(
@@ -44,6 +99,7 @@ final class NotificationService {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        center.add(request)
     }
 }
+

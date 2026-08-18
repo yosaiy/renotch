@@ -305,6 +305,7 @@ struct SmallActionButton: View {
 struct CircularTimerProgress: View {
     let progress: Double
     let text: String
+    var tint: Color = Color.notchAccent
 
     var body: some View {
         ZStack {
@@ -313,7 +314,7 @@ struct CircularTimerProgress: View {
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
-                    Color(red: 0.58, green: 0.98, blue: 0.67),
+                    tint,
                     style: StrokeStyle(lineWidth: 5, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -322,6 +323,17 @@ struct CircularTimerProgress: View {
                 .monospacedDigit()
         }
         .frame(width: 64, height: 64)
+    }
+}
+
+extension PomodoroMode {
+    var tint: Color {
+        switch self {
+        case .focus:
+            return Color.notchAccent
+        case .breakTime:
+            return Color(red: 0.42, green: 0.78, blue: 0.98)
+        }
     }
 }
 

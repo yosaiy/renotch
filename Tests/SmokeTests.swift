@@ -80,6 +80,26 @@ struct SmokeTests {
         expect(TimerService.formatted(65) == "01:05", "minute timer formatting")
         expect(TimerService.formatted(3_661) == "1:01:01", "hour timer formatting")
         expect(TimerService.formatted(-1) == "00:00", "negative timer formatting")
+
+        let timerDefaults = UserDefaults(suiteName: "renotch.tests.timer.\(UUID().uuidString)")!
+        let timerService = TimerService(defaults: timerDefaults)
+        expect(timerService.selectedMode == .focus, "initial timer mode is focus")
+        timerService.startPomodoro(focusMinutes: 25, breakMinutes: 5, autoAdvance: true, notify: false)
+        expect(timerService.isActive, "timer is active after start")
+        expect(timerService.currentMode == .focus, "active timer mode is focus")
+        expect(timerService.duration == 1500, "25 min focus duration")
+        expect(timerService.focusMinutes == 25, "focus minutes configured")
+        expect(timerService.breakMinutes == 5, "break minutes configured")
+        timerService.skip()
+        expect(timerService.isActive, "break timer active after skipping focus")
+        expect(timerService.currentMode == .breakTime, "active timer mode is break after skip")
+        expect(timerService.duration == 300, "5 min break duration")
+        timerService.skip()
+        expect(!timerService.isActive, "timer inactive after skipping break")
+        expect(timerService.selectedMode == .focus, "mode reset to focus after break")
+        timerService.cancel()
+        expect(!timerService.isActive, "timer inactive after cancel")
+
         expect(MusicService.parseAppleScriptNumber("309.389") == 309.389, "music dot-decimal parsing")
         expect(MusicService.parseAppleScriptNumber("309,389") == 309.389, "music comma-decimal parsing")
         let separator = "\u{001F}"
@@ -214,6 +234,25 @@ struct SmokeTests {
                 mediaSource: .music
             ) == .download,
             "download remains the highest compact priority"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: false,
+                mediaSource: nil,
+                configuredContent: .timer
+            ) == .configured,
+            "configured timer shows when no media is playing"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: false,
+                mediaSource: .music,
+                configuredContent: .timer,
+                isTimerActive: true
+            ) == .configured,
+            "active timer takes precedence over background music"
         )
         expect(
             DeveloperActivityService.frameworkName(command: "node_modules/.bin/next dev") == "Next.js",
