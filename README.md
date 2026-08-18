@@ -18,10 +18,14 @@ Turn your Mac's notch into a lightweight, native developer command center.
 
 ## Features
 
+- **Dev Activity**: Track local servers, ports, Git status, Docker containers, and build jobs.
+
 ![Dev Activity](public/Dev-Activity.gif)
 
-- **Dev Activity**: Track local servers, ports, Git status, Docker containers, and build jobs.
 - **Media Control**: Apple Music & Spotify playback with album art and controls.
+
+![Media Control](public/Music-Demo.gif)
+
 - **Productivity**: Focus timer, clipboard history, and file drop shelf.
 - **Browser Bridge**: YouTube playback and Chromium download monitor.
 - **Native & Private**: Swift/SwiftUI, fluid animations, 100% local, zero telemetry.
