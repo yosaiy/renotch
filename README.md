@@ -8,7 +8,7 @@ Turn your Mac's notch into a lightweight, native developer command center.
 
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-black?logo=apple)](https://developer.apple.com/macos/)
 [![Release](https://img.shields.io/github/v/release/yosaiy/renotch?label=release)](https://github.com/yosaiy/renotch/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 
 [**Download Latest**](https://github.com/yosaiy/renotch/releases/latest) • [**Report Bug**](https://github.com/yosaiy/renotch/issues)
 
@@ -17,6 +17,8 @@ Turn your Mac's notch into a lightweight, native developer command center.
 ---
 
 ## Features
+
+![Dev Activity](public/Dev-Activity.gif)
 
 - **Dev Activity**: Track local servers, ports, Git status, Docker containers, and build jobs.
 - **Media Control**: Apple Music & Spotify playback with album art and controls.
