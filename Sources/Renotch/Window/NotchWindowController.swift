@@ -117,11 +117,12 @@ final class NotchWindowController: NSWindowController {
     }
 
     private static func panelSize(for settings: NotchSettings) -> NSSize {
+        let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
         return NSSize(
             width: max(max(settings.compactWidth, settings.expandedWidth), NotchSettings.dragWidth)
                 + NotchLayout.shadowHorizontalPadding * 2,
             height: max(
-                max(settings.compactHeight, settings.expandedHeight),
+                max(settings.compactHeight, settings.expandedHeight + notchHeightOffset),
                 max(NotchSettings.dragHeight, NotchSettings.codingExpandedHeight)
             )
                 + NotchLayout.shadowBottomPadding

@@ -502,6 +502,36 @@ struct SettingsView: View {
                 }
             }
 
+            // Hardware Notch & Navigation Card
+            SettingCard(title: "Hardware Notch & Navigation", icon: "laptopcomputer.and.ipad", iconColor: .blue) {
+                VStack(spacing: 0) {
+                    SettingRow(
+                        title: "Avoid MacBook Hardware Notch",
+                        subtitle: "Adds top clearance so header icons are never covered by the physical MacBook screen notch"
+                    ) {
+                        Toggle("", isOn: avoidHardwareNotchBinding)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                    }
+
+                    Divider().opacity(0.12).padding(.vertical, 12)
+
+                    SettingRow(
+                        title: "Navigation Bar Style",
+                        subtitle: model.settings.resolvedHeaderNavigationStyle.subtitle
+                    ) {
+                        Picker("", selection: headerNavigationStyleBinding) {
+                            ForEach(HeaderNavigationStyle.allCases) { style in
+                                Text(style.title).tag(style)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(width: 190)
+                    }
+                }
+            }
+
             // Expanded Notch Section Card
             SettingCard(title: "Expanded Notch Dimensions", icon: "rectangle.expand.vertical", iconColor: .orange) {
                 VStack(spacing: 0) {
@@ -747,6 +777,20 @@ struct SettingsView: View {
         Binding(
             get: { GlassMaterialLevel.resolve(model.settings.resolvedGlassBlurRadius) },
             set: { model.settings.glassBlurRadius = $0.rawValue }
+        )
+    }
+
+    private var avoidHardwareNotchBinding: Binding<Bool> {
+        Binding(
+            get: { model.settings.resolvedAvoidHardwareNotch },
+            set: { model.settings.avoidHardwareNotch = $0 }
+        )
+    }
+
+    private var headerNavigationStyleBinding: Binding<HeaderNavigationStyle> {
+        Binding(
+            get: { model.settings.resolvedHeaderNavigationStyle },
+            set: { model.settings.headerNavigationStyle = $0 }
         )
     }
 

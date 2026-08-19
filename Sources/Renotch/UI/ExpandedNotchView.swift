@@ -22,6 +22,14 @@ struct ExpandedNotchView: View {
                 .animation(.easeOut(duration: 0.16), value: model.selectedSection)
                 .animation(.easeOut(duration: 0.16), value: model.activeMediaSource)
                 .animation(.easeOut(duration: 0.16), value: model.expandedSectionOverride)
+
+                if model.settings.resolvedHeaderNavigationStyle == .bottomDock {
+                    Divider()
+                        .overlay(Color.white.opacity(0.08))
+                        .padding(.vertical, 4)
+
+                    bottomDockView
+                }
             }
         }
         .padding(.leading, model.settings.resolvedExpandedContentLeadingPadding)
@@ -81,37 +89,39 @@ struct ExpandedNotchView: View {
 
             Spacer(minLength: 12)
 
-            HStack(spacing: 2) {
-                SectionButton(
-                    title: "Music",
-                    icon: "waveform",
-                    isSelected: isSelected(.music)
-                ) { select(.music) }
-                SectionButton(
-                    title: "Coding",
-                    icon: "chevron.left.forwardslash.chevron.right",
-                    isSelected: isSelected(.activity)
-                ) { select(.activity) }
-                SectionButton(
-                    title: "File Shelf",
-                    icon: "tray.full.fill",
-                    isSelected: isSelected(.shelf)
-                ) { select(.shelf) }
-                SectionButton(
-                    title: "Timer",
-                    icon: "timer",
-                    isSelected: isSelected(.timer)
-                ) { select(.timer) }
-                SectionButton(
-                    title: "Todos",
-                    icon: "checklist",
-                    isSelected: isSelected(.todo)
-                ) { select(.todo) }
-                SectionButton(
-                    title: "Calendar",
-                    icon: "calendar",
-                    isSelected: isSelected(.calendar)
-                ) { select(.calendar) }
+            if model.settings.resolvedHeaderNavigationStyle != .bottomDock {
+                HStack(spacing: 2) {
+                    SectionButton(
+                        title: "Music",
+                        icon: "waveform",
+                        isSelected: isSelected(.music)
+                    ) { select(.music) }
+                    SectionButton(
+                        title: "Coding",
+                        icon: "chevron.left.forwardslash.chevron.right",
+                        isSelected: isSelected(.activity)
+                    ) { select(.activity) }
+                    SectionButton(
+                        title: "File Shelf",
+                        icon: "tray.full.fill",
+                        isSelected: isSelected(.shelf)
+                    ) { select(.shelf) }
+                    SectionButton(
+                        title: "Timer",
+                        icon: "timer",
+                        isSelected: isSelected(.timer)
+                    ) { select(.timer) }
+                    SectionButton(
+                        title: "Todos",
+                        icon: "checklist",
+                        isSelected: isSelected(.todo)
+                    ) { select(.todo) }
+                    SectionButton(
+                        title: "Calendar",
+                        icon: "calendar",
+                        isSelected: isSelected(.calendar)
+                    ) { select(.calendar) }
+                }
             }
 
             if timer.isActive {
@@ -132,6 +142,47 @@ struct ExpandedNotchView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var bottomDockView: some View {
+        HStack(spacing: 3) {
+            SectionButton(
+                title: "Music",
+                icon: "waveform",
+                isSelected: isSelected(.music)
+            ) { select(.music) }
+            SectionButton(
+                title: "Coding",
+                icon: "chevron.left.forwardslash.chevron.right",
+                isSelected: isSelected(.activity)
+            ) { select(.activity) }
+            SectionButton(
+                title: "File Shelf",
+                icon: "tray.full.fill",
+                isSelected: isSelected(.shelf)
+            ) { select(.shelf) }
+            SectionButton(
+                title: "Timer",
+                icon: "timer",
+                isSelected: isSelected(.timer)
+            ) { select(.timer) }
+            SectionButton(
+                title: "Todos",
+                icon: "checklist",
+                isSelected: isSelected(.todo)
+            ) { select(.todo) }
+            SectionButton(
+                title: "Calendar",
+                icon: "calendar",
+                isSelected: isSelected(.calendar)
+            ) { select(.calendar) }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.05))
+        )
     }
 
     private func select(_ section: NotchSection) {

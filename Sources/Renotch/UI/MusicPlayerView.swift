@@ -78,8 +78,8 @@ struct MusicPlayerView: View {
             .monospacedDigit()
             .foregroundStyle(Color.notchMuted)
 
-            HStack(spacing: 10) {
-                HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     PlayerControlButton(
                         icon: "shuffle",
                         title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
@@ -88,7 +88,6 @@ struct MusicPlayerView: View {
                         activeColor: sourceAccent,
                         action: music.toggleShuffle
                     )
-                    .frame(maxWidth: .infinity)
 
                     PlayerControlButton(
                         icon: "backward.fill",
@@ -96,7 +95,6 @@ struct MusicPlayerView: View {
                         size: 27,
                         action: music.previousTrack
                     )
-                    .frame(maxWidth: .infinity)
 
                     Button(action: music.togglePlayback) {
                         Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
@@ -107,7 +105,6 @@ struct MusicPlayerView: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(PlayerPressButtonStyle())
-                    .frame(maxWidth: .infinity)
                     .help(music.isPlaying ? "Pause" : "Play")
 
                     PlayerControlButton(
@@ -116,7 +113,6 @@ struct MusicPlayerView: View {
                         size: 27,
                         action: music.nextTrack
                     )
-                    .frame(maxWidth: .infinity)
 
                     PlayerControlButton(
                         icon: music.repeatMode == .one ? "repeat.1" : "repeat",
@@ -126,15 +122,15 @@ struct MusicPlayerView: View {
                         activeColor: sourceAccent,
                         action: music.cycleRepeatMode
                     )
-                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 4)
-                .frame(maxWidth: .infinity)
                 .frame(height: 36)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color.white.opacity(0.045))
                 )
+
+                Spacer(minLength: 8)
 
                 HStack(spacing: 7) {
                     Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")

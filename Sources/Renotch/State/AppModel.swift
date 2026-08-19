@@ -135,6 +135,7 @@ final class AppModel: ObservableObject {
             }
             return NSSize(width: settings.compactWidth, height: settings.compactHeight)
         case .expanded:
+            let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
             if isShowingCodingSection {
                 return NSSize(
                     width: max(
@@ -142,12 +143,12 @@ final class AppModel: ObservableObject {
                         NotchSettings.codingExpandedWidth,
                         NotchSettings.expandedMinWidth
                     ),
-                    height: max(settings.expandedHeight, NotchSettings.codingExpandedHeight)
+                    height: max(settings.expandedHeight + notchHeightOffset, NotchSettings.codingExpandedHeight)
                 )
             }
             return NSSize(
                 width: max(settings.expandedWidth, NotchSettings.expandedMinWidth),
-                height: settings.expandedHeight
+                height: settings.expandedHeight + notchHeightOffset
             )
         case .fileDrop, .success:
             return NSSize(width: NotchSettings.dragWidth, height: NotchSettings.dragHeight)

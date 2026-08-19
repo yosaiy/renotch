@@ -65,6 +65,30 @@ enum NotchSection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum HeaderNavigationStyle: String, Codable, CaseIterable, Identifiable {
+    case standard = "topBar"
+    case belowNotch = "belowNotch"
+    case bottomDock = "bottomDock"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard: return "Top Bar"
+        case .belowNotch: return "Below Notch (Safe Area)"
+        case .bottomDock: return "Bottom Dock"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .standard: return "Header placed at top edge"
+        case .belowNotch: return "Pushes header below physical notch clearance"
+        case .bottomDock: return "Tabs in floating dock at bottom"
+        }
+    }
+}
+
 struct NotchSettings: Codable, Equatable {
     static let notchWidthRange = 180.0...800.0
     static let compactWidthRange = notchWidthRange
@@ -110,6 +134,10 @@ struct NotchSettings: Codable, Equatable {
     var expandedContentTrailingPadding: Double? = 28
     var expandedContentTopPadding: Double? = 12
     var expandedContentBottomPadding: Double? = 14
+    /// Optional so settings written before hardware notch accommodation still decode.
+    var avoidHardwareNotch: Bool? = false
+    /// Optional so settings written before configurable navigation styles still decode.
+    var headerNavigationStyle: HeaderNavigationStyle? = .standard
     var clipboardHistoryEnabled = true
     var timerNotificationsEnabled = true
     var compactWidth = 335.0
@@ -157,6 +185,18 @@ struct NotchSettings: Codable, Equatable {
         compactMusicShowsTrackInfo ?? false
     }
 
+    var resolvedAvoidHardwareNotch: Bool {
+        avoidHardwareNotch ?? false
+    }
+
+    var resolvedHeaderNavigationStyle: HeaderNavigationStyle {
+        headerNavigationStyle ?? .standard
+    }
+
+    var isHardwareNotchSafeActive: Bool {
+        resolvedAvoidHardwareNotch || resolvedHeaderNavigationStyle == .belowNotch
+    }
+
     var resolvedExpandedContentLeadingPadding: Double {
         (expandedContentLeadingPadding ?? 28).clamped(to: Self.expandedContentPaddingRange)
     }
@@ -166,7 +206,8 @@ struct NotchSettings: Codable, Equatable {
     }
 
     var resolvedExpandedContentTopPadding: Double {
-        (expandedContentTopPadding ?? 12).clamped(to: Self.expandedContentPaddingRange)
+        let base = (expandedContentTopPadding ?? 12).clamped(to: Self.expandedContentPaddingRange)
+        return isHardwareNotchSafeActive ? base + 26 : base
     }
 
     var resolvedExpandedContentBottomPadding: Double {
@@ -190,8 +231,10 @@ struct NotchSettings: Codable, Equatable {
         compactMusicShowsTrackInfo = resolvedCompactMusicShowsTrackInfo
         expandedContentLeadingPadding = resolvedExpandedContentLeadingPadding
         expandedContentTrailingPadding = resolvedExpandedContentTrailingPadding
-        expandedContentTopPadding = resolvedExpandedContentTopPadding
+        expandedContentTopPadding = (expandedContentTopPadding ?? 12).clamped(to: Self.expandedContentPaddingRange)
         expandedContentBottomPadding = resolvedExpandedContentBottomPadding
+        avoidHardwareNotch = resolvedAvoidHardwareNotch
+        headerNavigationStyle = resolvedHeaderNavigationStyle
     }
 }
 
