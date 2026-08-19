@@ -255,6 +255,24 @@ struct SmokeTests {
             "active timer takes precedence over background music"
         )
         expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: false,
+                mediaSource: .music,
+                configuredContent: .calendar
+            ) == .configured,
+            "configured calendar compact view takes precedence over background music"
+        )
+        expect(
+            AdaptiveCompactArbitrator.resolve(
+                downloadAvailable: false,
+                codingGlanceAvailable: false,
+                mediaSource: .music,
+                configuredContent: .shelf
+            ) == .configured,
+            "configured file shelf compact view takes precedence over background music"
+        )
+        expect(
             DeveloperActivityService.frameworkName(command: "node_modules/.bin/next dev") == "Next.js",
             "Next.js activity detection"
         )

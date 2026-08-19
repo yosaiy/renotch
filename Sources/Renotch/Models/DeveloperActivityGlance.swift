@@ -27,9 +27,7 @@ enum AdaptiveCompactArbitrator {
         if downloadAvailable { return .download }
         if codingGlanceAvailable { return .codingGlance }
         if configuredContent != .music {
-            if isTimerActive || mediaSource == nil {
-                return .configured
-            }
+            return .configured
         }
         switch mediaSource {
         case .browser: return .browserMedia

@@ -168,8 +168,29 @@ struct AppModelFileDropTests {
             expect(model.transientMessage == "Shelf is full", "capacity rejection shows the full message")
         }
 
+        // MARK: - Default compact view expands to configured section on hover and click
+
+        do {
+            let model = makeModel()
+            var settings = model.settings
+            settings.compactContent = .shelf
+            model.settings = settings
+            expect(model.selectedSection == .shelf, "setting compactContent to shelf updates selectedSection in compact mode")
+
+            model.hoverChanged(true)
+            expect(model.mode == .expanded, "hover expands compact notch")
+            expect(model.selectedSection == .shelf, "hover expands to configured shelf section")
+
+            model.collapse(force: true)
+            expect(model.mode == .compact, "collapse restores compact mode")
+
+            model.notchClicked()
+            expect(model.mode == .expanded, "click expands compact notch")
+            expect(model.selectedSection == .shelf, "click expands to configured shelf section")
+        }
+
         if failures.isEmpty {
-            print("All AppModel file drop tests passed.")
+            print("All AppModel tests passed.")
         } else {
             failures.forEach { fputs("FAIL: \($0)\n", stderr) }
             exit(1)

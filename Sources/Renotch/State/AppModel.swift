@@ -9,6 +9,9 @@ final class AppModel: ObservableObject {
             settingsStore.save(settings)
             clipboard.setEnabled(settings.clipboardHistoryEnabled)
             applyLaunchAtLoginIfNeeded(oldValue: oldValue.launchAtLogin)
+            if mode == .compact {
+                selectedSection = compactDestination
+            }
             onPanelConfigurationChanged?()
         }
     }
@@ -160,7 +163,7 @@ final class AppModel: ObservableObject {
             if mode == .compact {
                 expand(
                     section: compactDestination,
-                    preferSelectedSection: activity.glance != nil
+                    preferSelectedSection: true
                 )
             }
         } else if !isPinned {
@@ -179,7 +182,7 @@ final class AppModel: ObservableObject {
             expand(
                 section: compactDestination,
                 pin: true,
-                preferSelectedSection: activity.glance != nil
+                preferSelectedSection: true
             )
         case .fileDrop, .success:
             break
@@ -392,7 +395,7 @@ final class AppModel: ObservableObject {
         if expandedSectionOverride != nil {
             return expandedSectionOverride == .activity
         }
-        return activeMediaSource == nil && selectedSection == .activity
+        return selectedSection == .activity
     }
 
     private func restoreModeAfterFileDrop() {

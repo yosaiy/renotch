@@ -7,7 +7,7 @@ struct ExpandedNotchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if model.selectedSection == .welcome, model.activeMediaSource == nil {
+            if model.selectedSection == .welcome {
                 WelcomeView()
             } else {
                 header
@@ -33,16 +33,7 @@ struct ExpandedNotchView: View {
 
     @ViewBuilder
     private var visibleContent: some View {
-        if model.expandedSectionOverride != nil {
-            selectedSectionContent
-        } else if model.activeMediaSource == .browser,
-                  let media = model.browser.media {
-            ExpandedBrowserMediaView(media: media, artwork: model.browser.mediaArtwork)
-        } else if model.activeMediaSource == .music {
-            MusicPlayerView(music: model.music)
-        } else {
-            selectedSectionContent
-        }
+        selectedSectionContent
     }
 
     @ViewBuilder
@@ -61,7 +52,12 @@ struct ExpandedNotchView: View {
         case .activity:
             DeveloperActivityView(service: model.activity)
         case .music:
-            MusicPlayerView(music: model.music)
+            if model.activeMediaSource == .browser,
+               let media = model.browser.media {
+                ExpandedBrowserMediaView(media: media, artwork: model.browser.mediaArtwork)
+            } else {
+                MusicPlayerView(music: model.music)
+            }
         case .timer:
             TimerView(timer: timer)
         case .calendar:
@@ -143,14 +139,7 @@ struct ExpandedNotchView: View {
     }
 
     private func isSelected(_ section: NotchSection) -> Bool {
-        if model.expandedSectionOverride != nil {
-            return model.selectedSection == section
-        }
-        switch model.activeMediaSource {
-        case .music: return section == .music
-        case .browser: return false
-        case nil: return model.selectedSection == section
-        }
+        model.selectedSection == section
     }
 }
 
