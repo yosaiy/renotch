@@ -70,8 +70,8 @@ private enum BrowserIntegrationError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingExecutableDirectory: return "The application executable directory is unavailable."
-        case .missingBridge: return "The bundled browser bridge is unavailable. Build the packaged app first."
+        case .missingExecutableDirectory: return "应用程序的可执行文件目录不可用。"
+        case .missingBridge: return "缺少内置浏览器接入组件，请重新安装完整应用。"
         }
     }
 }

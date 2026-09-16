@@ -29,8 +29,8 @@ enum UpdateChecker {
                 guard isNewer(latest, than: current) else {
                     if interactive {
                         showAlert(
-                            title: "You're up to date",
-                            body: "Re:notch \(current) is the latest version."
+                            title: "已是最新版本",
+                            body: "Re:notch \(current) 已是最新版本。"
                         )
                     }
                     return
@@ -38,10 +38,10 @@ enum UpdateChecker {
                 let page = (json?["html_url"] as? String).flatMap(URL.init) ?? fallbackPage
                 NSApp.activate(ignoringOtherApps: true)
                 let alert = NSAlert()
-                alert.messageText = "Update available"
-                alert.informativeText = "Re:notch \(latest) is available (you have \(current)). Download it?"
-                alert.addButton(withTitle: "Download")
-                alert.addButton(withTitle: "Not Now")
+                alert.messageText = "有可用更新"
+                alert.informativeText = "Re:notch \(latest) 已发布，当前版本为 \(current)。是否前往下载？定制版功能可能需要重新合并。"
+                alert.addButton(withTitle: "下载")
+                alert.addButton(withTitle: "暂不更新")
                 if alert.runModal() == .alertFirstButtonReturn {
                     NSWorkspace.shared.open(page)
                 }
@@ -66,8 +66,8 @@ enum UpdateChecker {
     private static func showError() {
         NSApp.activate(ignoringOtherApps: true)
         showAlert(
-            title: "Update check failed",
-            body: "Could not reach GitHub. Check your connection and try again."
+            title: "检查更新失败",
+            body: "无法连接 GitHub，请检查网络后重试。"
         )
     }
 

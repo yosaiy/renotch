@@ -37,7 +37,7 @@ struct BrowserDownloadActivity: Equatable, Identifiable, Sendable {
 
     var displayName: String {
         let name = URL(fileURLWithPath: filename).lastPathComponent
-        return name.isEmpty ? "Download" : name
+        return name.isEmpty ? "下载" : name
     }
 
     var progress: Double? {

@@ -16,8 +16,8 @@ enum NotchAppearance: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .black: return "Black"
-        case .liquidGlass: return "Liquid Glass"
+        case .black: return "纯黑"
+        case .liquidGlass: return "液态玻璃"
         }
     }
 }
@@ -25,6 +25,7 @@ enum NotchAppearance: String, Codable, CaseIterable, Identifiable, Sendable {
 enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable {
     case music
     case servers
+    case codex
     case timer
     case calendar
     case shelf
@@ -34,18 +35,20 @@ enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable 
 
     var title: String {
         switch self {
-        case .music: return "Music"
-        case .servers: return "Servers"
-        case .timer: return "Timer"
-        case .calendar: return "Calendar"
-        case .shelf: return "File Shelf"
-        case .todo: return "To-Do List"
+        case .music: return "音乐"
+        case .codex: return "Codex 任务"
+        case .servers: return "本地服务"
+        case .timer: return "计时器"
+        case .calendar: return "日历"
+        case .shelf: return "文件暂存"
+        case .todo: return "待办清单"
         }
     }
 
     var section: NotchSection {
         switch self {
         case .music: return .music
+        case .codex: return .codex
         case .servers: return .activity
         case .timer: return .timer
         case .calendar: return .calendar
@@ -57,6 +60,7 @@ enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable 
 
 enum NotchSection: String, CaseIterable, Identifiable, Sendable {
     case dashboard
+    case codex
     case activity
     case welcome
     case music
@@ -77,17 +81,17 @@ enum HeaderNavigationStyle: String, Codable, CaseIterable, Identifiable, Sendabl
 
     var title: String {
         switch self {
-        case .standard: return "Top Bar"
-        case .belowNotch: return "Below Notch (Safe Area)"
-        case .bottomDock: return "Bottom Dock"
+        case .standard: return "顶部导航"
+        case .belowNotch: return "刘海下方（安全区域）"
+        case .bottomDock: return "底部导航"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .standard: return "Header placed at top edge"
-        case .belowNotch: return "Pushes header below physical notch clearance"
-        case .bottomDock: return "Tabs in floating dock at bottom"
+        case .standard: return "将导航栏放在顶部"
+        case .belowNotch: return "将导航栏放在实体刘海下方"
+        case .bottomDock: return "在底部浮动栏中显示导航标签"
         }
     }
 }
@@ -110,9 +114,17 @@ struct NotchSettings: Codable, Equatable, Sendable {
     static let dragWidth = 500.0
     static let dragHeight = 120.0
 
+    static let codexExpandedWidth = 620.0
+    static let codexExpandedHeight = 460.0
+    var codexEnabled: Bool? = true
+    var codexShowQuestions: Bool? = true
+    var codexShowUsage: Bool? = true
+    var codexCompletionSeconds: Double? = 120
+
     var isEnabled = true
     var launchAtLogin = false
     var targetDisplayID: UInt32?
+    var followForegroundWindow: Bool? = false
     var expandOnHover = true
     var expandOnClick = true
     var showOnFullscreen = true
@@ -410,8 +422,8 @@ enum PomodoroMode: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .focus: return "Focus"
-        case .breakTime: return "Break"
+        case .focus: return "专注"
+        case .breakTime: return "休息"
         }
     }
 

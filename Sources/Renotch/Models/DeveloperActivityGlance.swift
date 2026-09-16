@@ -6,7 +6,7 @@ struct AuthGlance: Equatable, Identifiable, Sendable {
     let subtitle: String
     let isSuccess: Bool
 
-    init(id: UUID = UUID(), title: String = "Face ID", subtitle: String = "Authenticated", isSuccess: Bool = true) {
+    init(id: UUID = UUID(), title: String = "面容认证", subtitle: String = "认证成功", isSuccess: Bool = true) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
@@ -96,7 +96,7 @@ enum DeveloperActivityGlanceResolver {
             return DeveloperActivityGlance(
                 id: id,
                 kind: preferredKind(in: triggerKinds),
-                title: "Coding active",
+                title: "开发任务进行中",
                 subtitle: activeSummary(activities: activities, containers: containers),
                 state: .running
             )
@@ -107,8 +107,8 @@ enum DeveloperActivityGlanceResolver {
             return DeveloperActivityGlance(
                 id: id,
                 kind: .docker,
-                title: "Docker active",
-                subtitle: count == 1 ? container.name : "\(container.name) · \(count) running",
+                title: "Docker 运行中",
+                subtitle: count == 1 ? container.name : "\(container.name) · \(count) 项运行中",
                 state: .running
             )
         }
@@ -142,21 +142,21 @@ enum DeveloperActivityGlanceResolver {
 
     private static func startTitle(for kind: DeveloperActivityKind) -> String {
         switch kind {
-        case .localhost: return "Server online"
-        case .build: return "Build started"
-        case .docker: return "Docker active"
-        case .git: return "Git changes detected"
-        case .deployment: return "Deploy started"
-        case .terminal: return "Task running"
+        case .localhost: return "服务已启动"
+        case .build: return "构建已开始"
+        case .docker: return "Docker 运行中"
+        case .git: return "检测到 Git 改动"
+        case .deployment: return "部署已开始"
+        case .terminal: return "任务进行中"
         }
     }
 
     private static func completionTitle(for kind: DeveloperActivityKind) -> String {
         switch kind {
-        case .build: return "Build complete"
-        case .deployment: return "Deploy complete"
-        case .terminal: return "Task complete"
-        default: return "Coding update"
+        case .build: return "构建已完成"
+        case .deployment: return "部署已完成"
+        case .terminal: return "任务已完成"
+        default: return "开发活动更新"
         }
     }
 
@@ -180,11 +180,11 @@ enum DeveloperActivityGlanceResolver {
         let terminalCount = activities.filter { $0.kind == .terminal && $0.state == .running }.count
         let dockerCount = containers.filter(\.isRunning).count
         var parts: [String] = []
-        if serverCount > 0 { parts.append("\(serverCount) server\(serverCount == 1 ? "" : "s")") }
-        if dockerCount > 0 { parts.append("\(dockerCount) Docker container\(dockerCount == 1 ? "" : "s")") }
-        if buildCount > 0 { parts.append("\(buildCount) build\(buildCount == 1 ? "" : "s")") }
-        if deploymentCount > 0 { parts.append("\(deploymentCount) deploy\(deploymentCount == 1 ? "" : "s")") }
-        if terminalCount > 0 { parts.append("\(terminalCount) task\(terminalCount == 1 ? "" : "s")") }
+        if serverCount > 0 { parts.append("\(serverCount) 个服务") }
+        if dockerCount > 0 { parts.append("\(dockerCount) 个 Docker 容器") }
+        if buildCount > 0 { parts.append("\(buildCount) 项构建") }
+        if deploymentCount > 0 { parts.append("\(deploymentCount) 项部署") }
+        if terminalCount > 0 { parts.append("\(terminalCount) 项任务") }
         return parts.prefix(3).joined(separator: " · ")
     }
 }

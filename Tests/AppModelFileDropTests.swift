@@ -43,7 +43,7 @@ struct AppModelFileDropTests {
         }
 
         func makeModel() -> AppModel {
-            let model = AppModel(defaults: makeDefaults())
+            let model = AppModel(defaults: makeDefaults(), connectCodex: false)
             model.successDismissalDelay = 0.05
             return model
         }
@@ -133,7 +133,7 @@ struct AppModelFileDropTests {
             expect(model.mode == .compact, "rejected drop restores compact mode")
             expect(!model.isPinned, "rejected drop leaves the notch unpinned")
             expect(model.shelf.items.isEmpty, "rejected drop leaves the shelf empty")
-            expect(model.transientMessage == "This item cannot be added", "rejected drop shows the invalid item message")
+            expect(model.transientMessage == "无法添加此项目", "rejected drop shows the invalid item message")
         }
 
         do {
@@ -165,7 +165,7 @@ struct AppModelFileDropTests {
             expect(model.mode == .compact, "capacity rejection restores compact mode")
             expect(!model.isPinned, "capacity rejection leaves the notch unpinned")
             expect(model.shelf.items.count == model.shelf.maxItems, "shelf stays at capacity")
-            expect(model.transientMessage == "Shelf is full", "capacity rejection shows the full message")
+            expect(model.transientMessage == "暂存区已满", "capacity rejection shows the full message")
         }
 
         // MARK: - Default compact view expands to configured section on hover and click

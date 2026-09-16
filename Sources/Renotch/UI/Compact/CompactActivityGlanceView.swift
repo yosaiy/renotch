@@ -34,7 +34,7 @@ struct CompactActivityGlanceView: View {
 
             HStack(spacing: 5) {
                 ActivityStateDot(state: glance.state)
-                Text(glance.state == .success ? "DONE" : "LIVE")
+                Text(glance.state == .success ? "已完成" : "进行中")
                     .font(.system(size: 8, weight: .semibold, design: .rounded))
                     .foregroundStyle(glance.state.tint)
             }

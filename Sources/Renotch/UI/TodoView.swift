@@ -53,7 +53,7 @@ struct TodoView: View {
                 .foregroundStyle(isInputFocused ? Color.blue : Color.white.opacity(0.4))
                 .animation(.easeOut(duration: 0.16), value: isInputFocused)
 
-            TextField("Add a new task or to-do…", text: $draft)
+            TextField("添加一条待办…", text: $draft)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.white)
@@ -63,7 +63,7 @@ struct TodoView: View {
             if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button(action: addTodo) {
                     HStack(spacing: 3) {
-                        Text("Add")
+                        Text("添加")
                             .font(.system(size: 11, weight: .semibold))
                         Image(systemName: "return")
                             .font(.system(size: 9, weight: .bold))
@@ -101,7 +101,7 @@ struct TodoView: View {
                     .fill(store.remainingCount == 0 ? Color.green : Color.blue)
                     .frame(width: 5, height: 5)
 
-                Text(store.remainingCount == 0 ? "All completed" : "\(store.remainingCount) remaining")
+                Text(store.remainingCount == 0 ? "全部完成" : "剩余 \(store.remainingCount) 项")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -121,7 +121,7 @@ struct TodoView: View {
                     HStack(spacing: 3) {
                         Image(systemName: "xmark.circle")
                             .font(.system(size: 9.5))
-                        Text("Clear Completed")
+                        Text("清除已完成")
                             .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundStyle(Color.secondary)
@@ -150,11 +150,11 @@ struct TodoView: View {
             }
 
             VStack(spacing: 2) {
-                Text("No Tasks Pending")
+                Text("暂无待办")
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.9))
 
-                Text("Type above and press Return to create your to-do.")
+                Text("在上方输入内容，按回车添加待办。")
                     .font(.system(size: 10.5, weight: .regular))
                     .foregroundStyle(.secondary)
             }

@@ -43,7 +43,10 @@ BIN_DIR_ARM64="$(swift build -c "$BUILD_CONFIGURATION" --triple arm64-apple-maco
 BIN_DIR_X86="$(swift build -c "$BUILD_CONFIGURATION" --triple x86_64-apple-macosx --show-bin-path)"
 
 rm -rf "$APP_PATH"
-mkdir -p "$CONTENTS_PATH/MacOS" "$CONTENTS_PATH/Resources"
+mkdir -p "$CONTENTS_PATH/MacOS" "$CONTENTS_PATH/Resources" "$CONTENTS_PATH/Frameworks"
+"$SCRIPT_DIR/build-music-bridge.sh" "$PROJECT_DIR/.build/music-bridge"
+cp "$PROJECT_DIR/.build/music-bridge/libQQMusicBridge.dylib" "$CONTENTS_PATH/Frameworks/"
+cp "$PROJECT_DIR/MediaBridge/qq-music-bridge.pl" "$CONTENTS_PATH/Resources/"
 
 # Create Universal binaries supporting both Apple Silicon and Intel Macs
 lipo -create \

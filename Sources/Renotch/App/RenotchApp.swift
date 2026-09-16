@@ -8,6 +8,7 @@ struct RenotchApp: App {
     var body: some Scene {
         MenuBarExtra {
             MenuBarContent()
+                .environment(\.locale, Locale(identifier: "zh_CN"))
                 .environmentObject(appDelegate.model)
         } label: {
             Image(nsImage: Self.trayIcon)
@@ -41,7 +42,18 @@ struct RenotchApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var shared: AppDelegate?
 
-    let model = AppModel()
+    let model: AppModel = {
+        #if DEBUG
+        if CommandLine.arguments.contains("--codex-ui-preview") || Bundle.main.object(forInfoDictionaryKey: "RenotchUIPreview") as? Bool == true {
+            let suite = "com.renotch.codex-ui-preview"
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.set(true, forKey: "virtualNotch.didCompleteOnboarding")
+            return AppModel(defaults: defaults, connectCodex: false)
+        }
+        #endif
+        return AppModel()
+    }()
     let screenManager = ScreenManager()
     private var notchController: NotchWindowController?
     private var settingsController: SettingsWindowController?
@@ -53,6 +65,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        #if DEBUG
+        if CommandLine.arguments.contains("--codex-ui-preview") || Bundle.main.object(forInfoDictionaryKey: "RenotchUIPreview") as? Bool == true {
+            model.codex.showPreview()
+            model.expand(section: .codex, pin: true)
+            notchController = NotchWindowController(model: model, screenManager: screenManager)
+            settingsController = SettingsWindowController(model: model, screenManager: screenManager)
+            notchController?.show()
+            return
+        }
+        #endif
         NotificationService.shared.requestAuthorization()
         UpdateChecker.check(interactive: false)
         _ = try? BrowserIntegrationInstaller.installBundledHost()
@@ -94,7 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try BrowserIntegrationInstaller.installBundledHost()
             guard let extensionURL = BrowserIntegrationInstaller.bundledExtensionURL,
                   FileManager.default.fileExists(atPath: extensionURL.path) else {
-                model.showMessage("Browser extension is unavailable")
+                model.showMessage("浏览器扩展不可用")
                 return
             }
             NSWorkspace.shared.activateFileViewerSelecting([
@@ -102,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ])
             model.setVisible(true)
             notchController?.show()
-            model.showMessage("Load BrowserExtension in your browser")
+            model.showMessage("请在浏览器中加载 BrowserExtension 扩展目录")
         } catch {
             model.setVisible(true)
             notchController?.show()
@@ -115,12 +137,17 @@ private struct MenuBarContent: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        Button("Show Notch") { AppDelegate.shared?.showNotch() }
+        Button("显示刘海") { AppDelegate.shared?.showNotch() }
             .disabled(model.settings.isEnabled)
-        Button("Hide Notch") { AppDelegate.shared?.hideNotch() }
+        Button("隐藏刘海") { AppDelegate.shared?.hideNotch() }
             .disabled(!model.settings.isEnabled)
 
         Divider()
+
+        Button("Codex 任务 · \(model.codex.activeTasks.count) 执行或待处理") {
+            AppDelegate.shared?.showNotch()
+            model.expand(section: .codex, pin: true)
+        }
 
         Button(activityMenuTitle) {
             AppDelegate.shared?.showNotch()
@@ -131,15 +158,15 @@ private struct MenuBarContent: View {
 
         TimerMenuSection(timer: model.timer)
 
-        Button("Settings…") { AppDelegate.shared?.openSettings() }
+        Button("设置…") { AppDelegate.shared?.openSettings() }
             .keyboardShortcut(",")
-        Button("Check for Updates…") { AppDelegate.shared?.checkForUpdates() }
-        Button("Set Up Browser Activity…") { AppDelegate.shared?.openBrowserIntegration() }
-        Button("Restart Notch") { AppDelegate.shared?.restartNotch() }
+        Button("检查更新…") { AppDelegate.shared?.checkForUpdates() }
+        Button("配置浏览器活动…") { AppDelegate.shared?.openBrowserIntegration() }
+        Button("重新显示刘海") { AppDelegate.shared?.restartNotch() }
 
         Divider()
 
-        Button("Quit Re:notch") { NSApp.terminate(nil) }
+        Button("退出 Re:notch") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
     }
 
@@ -159,22 +186,22 @@ private struct TimerMenuSection: View {
                 AppDelegate.shared?.showNotch()
                 model.expand(section: .timer, pin: true)
             }
-            Button(timer.isPaused ? "Resume \(timer.currentMode.title)" : "Pause \(timer.currentMode.title)") {
+            Button(timer.isPaused ? "继续\(timer.currentMode.title)" : "暂停\(timer.currentMode.title)") {
                 timer.togglePause()
             }
-            Button("Skip to \(timer.currentMode == .focus ? "Break" : "Focus")") {
+            Button("切换到\(timer.currentMode == .focus ? "休息" : "专注")") {
                 timer.skip()
             }
-            Button("Cancel Timer", role: .destructive) { timer.cancel() }
+            Button("取消计时", role: .destructive) { timer.cancel() }
             Divider()
         } else {
-            Button("Start Pomodoro (\(timer.focusMinutes)m Focus + \(timer.breakMinutes)m Break)") {
+            Button("开始番茄钟（专注 \(timer.focusMinutes) 分钟 + 休息 \(timer.breakMinutes) 分钟）") {
                 model.startPomodoro()
             }
-            Button("Start Focus (\(timer.focusMinutes)m)") {
+            Button("开始专注（\(timer.focusMinutes) 分钟）") {
                 model.startTimer(minutes: timer.focusMinutes, mode: .focus)
             }
-            Button("Start Break (\(timer.breakMinutes)m)") {
+            Button("开始休息（\(timer.breakMinutes) 分钟）") {
                 model.startTimer(minutes: timer.breakMinutes, mode: .breakTime)
             }
             Divider()

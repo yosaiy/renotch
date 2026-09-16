@@ -11,6 +11,9 @@ struct CompactNotchView: View {
 
     var body: some View {
         Group {
+            if model.authGlance == nil && model.codex.shouldPresent {
+                CompactCodexView(service: model.codex, usage: model.codexUsage)
+            } else {
             switch livePresentation {
             case .faceID(let auth):
                 CompactFaceIDView(auth: auth)
@@ -35,6 +38,7 @@ struct CompactNotchView: View {
                 )
             case .configured:
                 configuredContent
+            }
             }
         }
         .id(presentationID)
@@ -64,6 +68,8 @@ struct CompactNotchView: View {
     @ViewBuilder
     private var configuredContent: some View {
         switch model.settings.resolvedCompactContent {
+        case .codex:
+            CompactCodexView(service: model.codex, usage: model.codexUsage)
         case .music:
             CompactMusicView(
                 music: music,
@@ -85,6 +91,7 @@ struct CompactNotchView: View {
     }
 
     private var presentationID: String {
+        if model.authGlance == nil && model.codex.shouldPresent { return "codex" }
         switch livePresentation {
         case .faceID(let auth):
             return "faceid-\(auth.id.uuidString)"

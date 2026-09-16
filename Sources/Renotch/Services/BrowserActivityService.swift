@@ -119,7 +119,7 @@ final class BrowserActivityService: ObservableObject {
               let state = BrowserDownloadState(rawValue: rawState) else { return }
         downloads[id] = BrowserDownloadActivity(
             id: id,
-            filename: message.filename ?? "Download",
+            filename: message.filename ?? "下载",
             sourceURL: message.url.flatMap(URL.init(string:)),
             bytesReceived: max(0, message.bytesReceived ?? 0),
             totalBytes: message.totalBytes ?? -1,

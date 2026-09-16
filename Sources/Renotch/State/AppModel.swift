@@ -7,6 +7,8 @@ final class AppModel: ObservableObject {
     @Published var settings: NotchSettings {
         didSet {
             settingsStore.save(settings)
+            codex.configure(enabled: settings.codexEnabled != false, retention: settings.codexCompletionSeconds ?? 120)
+            codexUsage.configure(enabled: settings.codexEnabled != false && settings.codexShowUsage != false)
             applyLaunchAtLoginIfNeeded(oldValue: oldValue.launchAtLogin)
             if mode == .compact {
                 selectedSection = compactDestination
@@ -36,6 +38,8 @@ final class AppModel: ObservableObject {
     let calendar: AppleCalendarService
     let shelf: ShelfStore
     let todos: TodoStore
+    let codex: CodexActivityService
+    let codexUsage: CodexUsageService
     let activity: DeveloperActivityService
     let focusBlocker: FocusBlockerService
 
@@ -48,6 +52,7 @@ final class AppModel: ObservableObject {
     private var dropExitWorkItem: DispatchWorkItem?
     private var successWorkItem: DispatchWorkItem?
     private var messageWorkItem: DispatchWorkItem?
+    private var codexCancellable: AnyCancellable?
     private var browserActivityCancellable: AnyCancellable?
     private var musicActivityCancellable: AnyCancellable?
     private var timerActivityCancellable: AnyCancellable?
@@ -57,7 +62,7 @@ final class AppModel: ObservableObject {
     private var modeBeforeFocusTakeover: NotchMode = .compact
     private var isApplyingLoginSetting = false
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, connectCodex: Bool = true) {
         self.defaults = defaults
         settingsStore = SettingsStore(defaults: defaults)
         let loadedSettings = settingsStore.load()
@@ -69,6 +74,8 @@ final class AppModel: ObservableObject {
         shelf = ShelfStore()
         todos = TodoStore(defaults: defaults)
         activity = DeveloperActivityService()
+        codex = CodexActivityService(connect: connectCodex && loadedSettings.codexEnabled != false)
+        codexUsage = CodexUsageService(connect: connectCodex, enabled: loadedSettings.codexEnabled != false && loadedSettings.codexShowUsage != false)
         focusBlocker = FocusBlockerService()
         FocusBlockerOverlayController.shared.blockerService = focusBlocker
 
@@ -104,6 +111,13 @@ final class AppModel: ObservableObject {
                     self?.onPanelConfigurationChanged?()
                 }
             }
+        codex.configure(enabled: loadedSettings.codexEnabled != false, retention: loadedSettings.codexCompletionSeconds ?? 120)
+        codexCancellable = codex.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.objectWillChange.send()
+                self?.onPanelConfigurationChanged?()
+            }
+        }
         setupPowerManagementObservers()
         activity.setRefreshInterval(isExpanded ? 4.0 : 15.0)
     }
@@ -118,7 +132,8 @@ final class AppModel: ObservableObject {
     }
 
     private var compactDestination: NotchSection {
-        activity.glance == nil ? settings.resolvedCompactContent.section : .activity
+        if codex.shouldPresent { return .codex }
+        return activity.glance == nil ? settings.resolvedCompactContent.section : .activity
     }
 
     var activeMediaSource: AdaptiveMediaSource? {
@@ -139,6 +154,9 @@ final class AppModel: ObservableObject {
                     width: max(settings.compactWidth, 320),
                     height: max(settings.compactHeight, 44)
                 )
+            }
+            if codex.shouldPresent || settings.resolvedCompactContent == .codex {
+                return NSSize(width: max(settings.compactWidth, 430), height: max(settings.compactHeight, 52))
             }
             if browser.activeDownload != nil {
                 return NSSize(
@@ -161,6 +179,10 @@ final class AppModel: ObservableObject {
             return NSSize(width: settings.compactWidth, height: settings.compactHeight)
         case .expanded:
             let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
+            if selectedSection == .codex {
+                return NSSize(width: max(settings.expandedWidth, NotchSettings.codexExpandedWidth),
+                              height: max(settings.expandedHeight + notchHeightOffset, NotchSettings.codexExpandedHeight))
+            }
             if isShowingCodingSection {
                 return NSSize(
                     width: max(
@@ -183,7 +205,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func triggerFaceIDGlance(title: String = "Face ID", subtitle: String = "Authenticated", duration: TimeInterval = 2.2) {
+    func triggerFaceIDGlance(title: String = "面容认证", subtitle: String = "认证成功", duration: TimeInterval = 2.2) {
         authGlance = AuthGlance(title: title, subtitle: subtitle, isSuccess: true)
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
         onPanelConfigurationChanged?()
@@ -299,7 +321,7 @@ final class AppModel: ObservableObject {
     func showShelf(pin: Bool = false) {
         let removedCount = shelf.removeMissingFiles()
         if removedCount > 0 {
-            showMessage(removedCount == 1 ? "Removed 1 missing file" : "Removed \(removedCount) missing files")
+            showMessage(removedCount == 1 ? "已移除 1 个不存在的文件" : "已移除 \(removedCount) 个不存在的文件")
         }
         guard !shelf.items.isEmpty else {
             collapse(force: true)
@@ -347,9 +369,9 @@ final class AppModel: ObservableObject {
         let result = shelf.add(urls)
         guard result.addedCount > 0 else {
             if result.capacityRejectedCount > 0 || shelf.items.count == shelf.maxItems {
-                showMessage("Shelf is full")
+                showMessage("暂存区已满")
             } else {
-                showMessage("This item cannot be added")
+                showMessage("无法添加此项目")
             }
             restoreModeAfterFileDrop()
             return false
@@ -362,9 +384,9 @@ final class AppModel: ObservableObject {
         mode = .success
         onPanelConfigurationChanged?()
         if result.capacityRejectedCount > 0 {
-            showMessage("Shelf is full")
+            showMessage("暂存区已满")
         } else {
-            showMessage(result.addedCount == 1 ? "Added to shelf" : "Added \(result.addedCount) files")
+            showMessage(result.addedCount == 1 ? "已添加到暂存区" : "已添加 \(result.addedCount) 个文件")
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         scheduleSuccessDismissal()
@@ -394,7 +416,7 @@ final class AppModel: ObservableObject {
     func removeMissingShelfFiles() {
         let removedCount = shelf.removeMissingFiles()
         guard removedCount > 0 else { return }
-        showMessage(removedCount == 1 ? "Removed 1 missing file" : "Removed \(removedCount) missing files")
+        showMessage(removedCount == 1 ? "已移除 1 个不存在的文件" : "已移除 \(removedCount) 个不存在的文件")
         shelfDidChange()
     }
 
@@ -415,7 +437,7 @@ final class AppModel: ObservableObject {
             notify: settings.timerNotificationsEnabled
         )
         isPinned = false
-        showMessage("Focus started · \(fMin)m (Break \(bMin)m next)")
+        showMessage("已开始专注 · \(fMin) 分钟（接下来休息 \(bMin) 分钟）")
         collapse(force: true)
     }
 
@@ -423,7 +445,7 @@ final class AppModel: ObservableObject {
         let activeMode = mode ?? timer.selectedMode
         timer.start(minutes: minutes, mode: activeMode, notify: settings.timerNotificationsEnabled)
         isPinned = false
-        showMessage("\(activeMode.title) timer started · \(minutes) min")
+        showMessage("已开始\(activeMode.title)计时 · \(minutes) 分钟")
         collapse(force: true)
     }
 
@@ -484,8 +506,8 @@ final class AppModel: ObservableObject {
             )
         }
         transientMessage = isAutoBreak
-            ? "Focus complete · \(breakMin)m Break started"
-            : (completedMode == .focus ? "Focus complete!" : "Break complete!")
+            ? "专注完成 · 已开始 \(breakMin) 分钟休息"
+            : (completedMode == .focus ? "专注完成！" : "休息结束！")
         expand(section: .timer, pin: true, preferSelectedSection: true)
     }
 
@@ -498,7 +520,7 @@ final class AppModel: ObservableObject {
             isApplyingLoginSetting = true
             settings.launchAtLogin = oldValue
             isApplyingLoginSetting = false
-            settingsError = "Launch at login could not be changed: \(error.localizedDescription)"
+            settingsError = "无法更改登录启动设置：\(error.localizedDescription)"
         }
     }
 
@@ -517,11 +539,15 @@ final class AppModel: ObservableObject {
     }
 
     private func pauseServices() {
+        codex.pause()
+        codexUsage.pause()
         music.pause()
         activity.pause()
     }
 
     private func resumeServices() {
+        codex.start()
+        codexUsage.start()
         music.resume()
         activity.resume()
     }

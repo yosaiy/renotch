@@ -50,35 +50,35 @@ struct CompactTimerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(timer.isActive ? (timer.isPaused ? "\(timer.currentMode.title) timer paused" : "\(timer.currentMode.title) timer running") : "Pomodoro timer ready")
-        .accessibilityValue(timer.isActive ? TimerService.formatted(timer.remaining) : "\(timer.focusMinutes) minutes")
+        .accessibilityLabel(timer.isActive ? (timer.isPaused ? "\(timer.currentMode.title)计时已暂停" : "\(timer.currentMode.title)计时中") : "番茄钟准备就绪")
+        .accessibilityValue(timer.isActive ? TimerService.formatted(timer.remaining) : "\(timer.focusMinutes) 分钟")
     }
 
     private var titleText: String {
         if let message { return message }
         if timer.isActive {
-            return timer.isPaused ? "\(timer.currentMode.title) paused" : "\(timer.currentMode.title) timer"
+            return timer.isPaused ? "\(timer.currentMode.title)已暂停" : "\(timer.currentMode.title)计时"
         }
-        return "Pomodoro"
+        return "番茄钟"
     }
 
     private var subtitleText: String {
         if timer.isActive {
-            if timer.isPaused { return "Click to manage" }
+            if timer.isPaused { return "点击管理" }
             if timer.currentMode == .focus && (timer.storedTimer?.isAutoAdvance ?? timer.autoAdvance) {
                 let breakM = timer.storedTimer?.resolvedBreakMinutes ?? timer.breakMinutes
-                return "Break \(breakM)m next"
+                return "接下来休息 \(breakM) 分钟"
             }
-            return "In progress"
+            return "进行中"
         }
-        return "Ready · \(timer.focusMinutes)m + \(timer.breakMinutes)m"
+        return "就绪 · 专注 \(timer.focusMinutes) 分钟 + 休息 \(timer.breakMinutes) 分钟"
     }
 
     private var trailingText: String {
         if timer.isActive {
             return TimerService.formatted(timer.remaining)
         }
-        return "\(timer.focusMinutes)m"
+        return "\(timer.focusMinutes) 分钟"
     }
 }
 

@@ -11,25 +11,25 @@ struct QuickActionsView: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ActionTile(title: "Face ID", icon: "faceid", tint: .notchAccent) {
+            ActionTile(title: "面容认证", icon: "faceid", tint: .notchAccent) {
                 model.collapse(force: true)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     model.triggerFaceIDGlance()
                 }
             }
-            ActionTile(title: "Focus 25m", icon: "timer", tint: .notchAccent) {
+            ActionTile(title: "专注 25 分钟", icon: "timer", tint: .notchAccent) {
                 model.startTimer(minutes: 25, mode: .focus)
             }
-            ActionTile(title: "Finder", icon: "face.smiling") {
+            ActionTile(title: "访达", icon: "face.smiling") {
                 NSWorkspace.shared.open(URL(fileURLWithPath: NSHomeDirectory()))
             }
-            ActionTile(title: "Downloads", icon: "arrow.down.circle") {
+            ActionTile(title: "下载", icon: "arrow.down.circle") {
                 openDirectory(.downloadsDirectory)
             }
-            ActionTile(title: "Screenshots", icon: "camera.viewfinder") {
+            ActionTile(title: "截屏", icon: "camera.viewfinder") {
                 openScreenshots()
             }
-            ActionTile(title: "Settings", icon: "gearshape") {
+            ActionTile(title: "设置", icon: "gearshape") {
                 AppDelegate.shared?.openSettings()
             }
         }

@@ -4,11 +4,13 @@ import Foundation
 enum MusicSource: String, CaseIterable, Equatable, Sendable {
     case appleMusic
     case spotify
+    case qqMusic
 
     var displayName: String {
         switch self {
         case .appleMusic: return "Apple Music"
         case .spotify: return "Spotify"
+        case .qqMusic: return "QQ 音乐"
         }
     }
 
@@ -16,6 +18,7 @@ enum MusicSource: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .appleMusic: return "com.apple.Music"
         case .spotify: return "com.spotify.client"
+        case .qqMusic: return "com.tencent.QQMusicMac"
         }
     }
 
@@ -23,6 +26,7 @@ enum MusicSource: String, CaseIterable, Equatable, Sendable {
         switch self {
         case .appleMusic: return "Music"
         case .spotify: return "Spotify"
+        case .qqMusic: return "QQMusic"
         }
     }
 
@@ -77,6 +81,8 @@ struct MusicSnapshot: Equatable, Sendable {
     let artworkURL: URL?
     let shuffleEnabled: Bool
     let repeatMode: MusicRepeatMode
+    var artworkData: Data? = nil
+    var hasPosition: Bool = true
 }
 
 @MainActor
@@ -84,6 +90,7 @@ final class MusicService: ObservableObject {
     @Published private(set) var track: MusicTrack?
     @Published private(set) var playbackState: MusicPlaybackState = .notRunning
     @Published private(set) var position: TimeInterval = 0
+    @Published private(set) var positionIsAvailable = true
     @Published private(set) var volume: Double = 0.7
     @Published private(set) var artwork: NSImage?
     @Published private(set) var automationDenied = false
@@ -91,6 +98,8 @@ final class MusicService: ObservableObject {
     @Published private(set) var activeSource: MusicSource = .appleMusic
     @Published private(set) var shuffleEnabled = false
     @Published private(set) var repeatMode: MusicRepeatMode = .off
+    @Published private(set) var qqMusicError: String?
+    private let qqMusic = QQMusicBridge()
 
     private static let artworkCache = NSCache<NSString, NSImage>()
     private var pollingTimer: Timer?
@@ -103,6 +112,9 @@ final class MusicService: ObservableObject {
     private var loadingTrackID: String?
 
     init() {
+        qqMusic.onSnapshot = { [weak self] snapshot in self?.applyQQMusic(snapshot) }
+        qqMusic.onError = { [weak self] error in self?.qqMusicError = error }
+        qqMusic.start()
         refresh()
         setupDistributedObservers()
         updatePollingTimerState()
@@ -144,30 +156,37 @@ final class MusicService: ObservableObject {
     }
 
     func pause() {
+        qqMusic.stop()
         pollingTimer?.invalidate()
         pollingTimer = nil
     }
 
     func resume() {
+        qqMusic.start()
         refresh()
         updatePollingTimerState()
     }
 
     var isPlaying: Bool { playbackState == .playing }
+    var supportsExtendedControls: Bool { activeSource != .qqMusic }
 
     func togglePlayback() {
+        if activeSource == .qqMusic { qqMusic.send(.toggle); return }
         runCommand("playpause")
     }
 
     func previousTrack() {
+        if activeSource == .qqMusic { qqMusic.send(.previous); return }
         runCommand("previous track")
     }
 
     func nextTrack() {
+        if activeSource == .qqMusic { qqMusic.send(.next); return }
         runCommand("next track")
     }
 
     func toggleShuffle() {
+        guard supportsExtendedControls else { return }
         let nextValue = !shuffleEnabled
         shuffleEnabled = nextValue
         switch activeSource {
@@ -175,10 +194,12 @@ final class MusicService: ObservableObject {
             runCommand("set shuffle enabled to \(nextValue)")
         case .spotify:
             runCommand("set shuffling to \(nextValue)")
+        case .qqMusic: break
         }
     }
 
     func cycleRepeatMode() {
+        guard supportsExtendedControls else { return }
         let nextMode = repeatMode.next(for: activeSource)
         repeatMode = nextMode
         switch activeSource {
@@ -186,15 +207,18 @@ final class MusicService: ObservableObject {
             runCommand("set song repeat to \(nextMode.rawValue)")
         case .spotify:
             runCommand("set repeating to \(nextMode == .off ? "false" : "true")")
+        case .qqMusic: break
         }
     }
 
     func seek(to value: TimeInterval) {
+        guard supportsExtendedControls else { return }
         let safePosition = value.clamped(to: 0...(track?.duration ?? max(value, 0)))
         runCommand("set player position to \(safePosition)")
     }
 
     func setVolume(_ value: Double) {
+        guard supportsExtendedControls else { return }
         let safeVolume = value.clamped(to: 0...1)
         volume = safeVolume
         runCommand("set sound volume to \(Int((safeVolume * 100).rounded()))")
@@ -246,6 +270,7 @@ final class MusicService: ObservableObject {
     ) async -> [MusicSource: Result<String, AppleScriptFailure>] {
         var results: [MusicSource: Result<String, AppleScriptFailure>] = [:]
         for source in MusicSource.allCases {
+            guard source != .qqMusic else { continue }
             results[source] = runningSources.contains(source)
                 ? execute(metadataScript(for: source))
                 : .success(MusicPlaybackState.notRunning.rawValue)
@@ -400,6 +425,7 @@ final class MusicService: ObservableObject {
         playbackState = selectedSnapshot?.playbackState ?? .notRunning
         track = selectedSnapshot?.track
         position = selectedSnapshot?.position ?? 0
+        positionIsAvailable = selectedSnapshot?.hasPosition ?? false
         volume = selectedSnapshot?.volume ?? volume
         automationDenied = automationDeniedSources.contains(selectedSource)
         playbackActivationDate = activationDates[selectedSource] ?? .distantPast
@@ -421,13 +447,26 @@ final class MusicService: ObservableObject {
             }
         }
 
-        if let track {
+        if selectedSource == .qqMusic {
+            // QQ supplies artwork only on some system versions. Never search a
+            // different catalogue and present an unrelated cover as its artwork.
+            artwork = selectedSnapshot?.artworkData.flatMap(NSImage.init(data:))
+        } else if let track {
             if trackChanged || (artwork == nil && loadingTrackID != track.id) {
                 loadArtwork(for: track, remoteURL: selectedSnapshot?.artworkURL)
             }
         } else {
             artwork = nil
         }
+    }
+
+    private func applyQQMusic(_ snapshot: MusicSnapshot?) {
+        let previous = snapshots[.qqMusic]
+        if snapshot?.playbackState == .playing && (previous?.playbackState != .playing || previous?.track?.id != snapshot?.track?.id) {
+            activationDates[.qqMusic] = Date()
+        }
+        snapshots[.qqMusic] = snapshot
+        apply([:])
     }
 
     private func resolveActiveSource() -> MusicSource {
@@ -473,6 +512,8 @@ final class MusicService: ObservableObject {
                 loadedImage = await Self.fetchAppleMusicArtwork()
             case .spotify:
                 loadedImage = await Self.fetchRemoteArtwork(url: remoteURL)
+            case .qqMusic:
+                return
             }
 
             guard !Task.isCancelled else { return }
@@ -529,9 +570,9 @@ final class MusicService: ObservableObject {
     }
 
     nonisolated private static func searchOnlineArtwork(for track: MusicTrack) async -> NSImage? {
-        guard !track.title.isEmpty, track.title != "Unknown title" else { return nil }
+        guard !track.title.isEmpty, track.title != "未知歌曲" else { return nil }
         var query = track.title
-        if !track.artist.isEmpty && track.artist != "Unknown artist" {
+        if !track.artist.isEmpty && track.artist != "未知歌手" {
             query += " \(track.artist)"
         }
         guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
@@ -558,7 +599,7 @@ final class MusicService: ObservableObject {
 
     nonisolated private static func execute(_ source: String) -> Result<String, AppleScriptFailure> {
         guard let script = NSAppleScript(source: source) else {
-            return .failure(AppleScriptFailure(code: -1, message: "AppleScript could not be created."))
+            return .failure(AppleScriptFailure(code: -1, message: "无法创建自动化脚本。"))
         }
         var error: NSDictionary?
         let descriptor = script.executeAndReturnError(&error)
@@ -566,7 +607,7 @@ final class MusicService: ObservableObject {
             return .failure(
                 AppleScriptFailure(
                     code: error[NSAppleScript.errorNumber] as? Int ?? -1,
-                    message: error[NSAppleScript.errorMessage] as? String ?? "Music command failed."
+                    message: error[NSAppleScript.errorMessage] as? String ?? "音乐控制命令执行失败。"
                 )
             )
         }
@@ -579,6 +620,8 @@ final class MusicService: ObservableObject {
             return appleMusicMetadataScript
         case .spotify:
             return spotifyMetadataScript
+        case .qqMusic:
+            return "" // QQ uses the local media bridge, never AppleScript.
         }
     }
 
@@ -595,12 +638,12 @@ final class MusicService: ObservableObject {
         try
             set trackTitle to (name of activeTrack as text)
         on error
-            set trackTitle to "Unknown title"
+            set trackTitle to "未知歌曲"
         end try
         try
             set trackArtist to (artist of activeTrack as text)
         on error
-            set trackArtist to "Unknown artist"
+            set trackArtist to "未知歌手"
         end try
         try
             set trackAlbum to (album of activeTrack as text)
@@ -642,12 +685,12 @@ final class MusicService: ObservableObject {
         try
             set trackTitle to (name of activeTrack as text)
         on error
-            set trackTitle to "Unknown title"
+            set trackTitle to "未知歌曲"
         end try
         try
             set trackArtist to (artist of activeTrack as text)
         on error
-            set trackArtist to "Unknown artist"
+            set trackArtist to "未知歌手"
         end try
         try
             set trackAlbum to (album of activeTrack as text)

@@ -15,6 +15,13 @@ struct MusicPlayerView: View {
                         AppleMusicBadge()
                             .padding(5)
                             .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                    } else if music.activeSource == .qqMusic {
+                        Text("QQ 音乐")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.black)
+                            .padding(4)
+                            .background(.green, in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5)
                     }
                 }
                 .animation(.easeOut(duration: 0.2), value: music.isPlaying)
@@ -38,7 +45,7 @@ struct MusicPlayerView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(metadata(for: track))
+                    Text(([music.activeSource.displayName, metadata(for: track)]).filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Color.notchMuted)
                         .lineLimit(1)
@@ -48,17 +55,19 @@ struct MusicPlayerView: View {
                     Circle()
                         .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
                         .frame(width: 5, height: 5)
-                    Text(music.isPlaying ? "Playing" : "Paused")
+                    Text(music.isPlaying ? "正在播放" : "已暂停")
                 }
                 .font(.system(size: 8.5, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .accessibilityLabel("Playback status: \(music.isPlaying ? "playing" : "paused")")
+                .accessibilityLabel("播放状态：\(music.isPlaying ? "播放中" : "已暂停")")
             }
 
+            if music.positionIsAvailable {
             HStack(spacing: 7) {
                 Text(MusicService.formattedTime(activePosition))
                     .frame(width: 28, alignment: .leading)
-                Slider(
+                if music.supportsExtendedControls {
+                    Slider(
                     value: Binding(
                         get: { activePosition },
                         set: { draggedPosition = $0 }
@@ -70,28 +79,45 @@ struct MusicPlayerView: View {
                         self.draggedPosition = nil
                     }
                 )
-                .tint(Color.musicAccent)
+                    .tint(sourceAccent)
+                } else {
+                    ProgressView(value: activePosition, total: max(track.duration, 1))
+                        .tint(sourceAccent)
+                        .help("QQ 音乐播放进度；拖动进度请在 QQ 音乐中操作")
+                }
                 Text("−" + MusicService.formattedTime(max(0, track.duration - activePosition)))
                     .frame(width: 36, alignment: .trailing)
             }
             .font(.system(size: 8, weight: .medium, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Color.notchMuted)
+            } else {
+                HStack {
+                    Text("进度暂不可用")
+                    Spacer()
+                    Text("时长 \(MusicService.formattedTime(track.duration))")
+                }
+                .font(.system(size: 9))
+                .foregroundStyle(Color.notchMuted)
+                .frame(height: 16)
+            }
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
+                    if music.supportsExtendedControls {
                     PlayerControlButton(
                         icon: "shuffle",
-                        title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
+                        title: music.shuffleEnabled ? "已开启随机播放" : "已关闭随机播放",
                         size: 27,
                         isActive: music.shuffleEnabled,
                         activeColor: sourceAccent,
                         action: music.toggleShuffle
                     )
+                    }
 
                     PlayerControlButton(
                         icon: "backward.fill",
-                        title: "Previous",
+                        title: "上一首",
                         size: 27,
                         action: music.previousTrack
                     )
@@ -105,15 +131,18 @@ struct MusicPlayerView: View {
                             .contentShape(Circle())
                     }
                     .buttonStyle(PlayerPressButtonStyle())
-                    .help(music.isPlaying ? "Pause" : "Play")
+                    .help(music.isPlaying ? "暂停" : "播放")
+                    .accessibilityLabel(music.isPlaying ? "暂停音乐" : "播放音乐")
+                    .accessibilityIdentifier("music-toggle")
 
                     PlayerControlButton(
                         icon: "forward.fill",
-                        title: "Next",
+                        title: "下一首",
                         size: 27,
                         action: music.nextTrack
                     )
 
+                    if music.supportsExtendedControls {
                     PlayerControlButton(
                         icon: music.repeatMode == .one ? "repeat.1" : "repeat",
                         title: repeatHelp,
@@ -122,6 +151,7 @@ struct MusicPlayerView: View {
                         activeColor: sourceAccent,
                         action: music.cycleRepeatMode
                     )
+                    }
                 }
                 .padding(.horizontal, 4)
                 .frame(height: 36)
@@ -132,7 +162,8 @@ struct MusicPlayerView: View {
 
                 Spacer(minLength: 8)
 
-                HStack(spacing: 7) {
+                if music.supportsExtendedControls {
+                    HStack(spacing: 7) {
                     Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(Color.notchMuted)
@@ -151,6 +182,16 @@ struct MusicPlayerView: View {
                     .tint(.white.opacity(0.82))
                 }
                 .frame(width: 94)
+                } else {
+                    Button("打开 QQ 音乐") { music.open(.qqMusic) }
+                        .font(.system(size: 10, weight: .medium))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(sourceAccent)
+                        .help("在 QQ 音乐中调整音量、进度和播放模式")
+                }
+            }
+            if music.activeSource == .qqMusic, let error = music.qqMusicError {
+                Text(error).font(.system(size: 9)).foregroundStyle(.orange).lineLimit(2)
             }
         }
     }
@@ -159,14 +200,14 @@ struct MusicPlayerView: View {
         VStack(alignment: .leading, spacing: 7) {
             Text(
                 music.automationDenied
-                    ? "\(music.activeSource.displayName) access is off"
-                    : "Nothing playing"
+                    ? "尚未授权访问 \(music.activeSource.displayName)"
+                    : "暂无播放内容"
             )
                 .font(.system(size: 14, weight: .semibold))
             Text(
                 music.automationDenied
-                    ? "Allow Re:notch to control \(music.activeSource.displayName) in System Settings → Privacy & Security → Automation."
-                    : "Play a song in Apple Music or Spotify and its artwork and controls will appear here."
+                    ? "请在“系统设置 → 隐私与安全性 → 自动化”中，允许 Re:notch 控制 \(music.activeSource.displayName)。"
+                    : (music.qqMusicError ?? "在 QQ 音乐、Apple Music 或 Spotify 中播放音乐后，这里会显示歌曲和播放控制。")
             )
             .font(.system(size: 10))
             .foregroundStyle(Color.notchMuted)
@@ -175,6 +216,7 @@ struct MusicPlayerView: View {
 
             HStack(spacing: 7) {
                 sourceButton(.appleMusic)
+                sourceButton(.qqMusic)
                 sourceButton(.spotify)
             }
         }
@@ -187,7 +229,7 @@ struct MusicPlayerView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: source == .spotify ? "waveform.circle.fill" : "music.note")
-                Text("Open \(source.displayName)")
+                Text(source.displayName)
             }
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(.white)
@@ -195,12 +237,14 @@ struct MusicPlayerView: View {
             .frame(height: 27)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(source == .spotify ? spotifyAccent : Color.musicAccent)
+                    .fill(source == .appleMusic ? Color.musicAccent : spotifyAccent)
             )
         }
         .buttonStyle(.plain)
         .disabled(!music.isInstalled(source))
         .opacity(music.isInstalled(source) ? 1 : 0.4)
+        .help("打开 \(source.displayName)")
+        .accessibilityLabel("打开 \(source.displayName)")
     }
 
     private var activePosition: Double {
@@ -212,7 +256,7 @@ struct MusicPlayerView: View {
     }
 
     private var sourceAccent: Color {
-        music.activeSource == .spotify ? spotifyAccent : Color.musicAccent
+        music.activeSource == .appleMusic ? Color.musicAccent : spotifyAccent
     }
 
     private var spotifyAccent: Color {
@@ -221,9 +265,9 @@ struct MusicPlayerView: View {
 
     private var repeatHelp: String {
         switch music.repeatMode {
-        case .off: return "Repeat off"
-        case .all: return "Repeat all"
-        case .one: return "Repeat one"
+        case .off: return "已关闭循环播放"
+        case .all: return "列表循环"
+        case .one: return "单曲循环"
         }
     }
 
@@ -267,7 +311,7 @@ struct AppleMusicBadge: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
             )
-            .accessibilityLabel("Playing from Apple Music")
+            .accessibilityLabel("正在播放 Apple Music")
     }
 }
 
@@ -312,7 +356,7 @@ struct AudioWaveform: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .accessibilityLabel(isPlaying ? "Music playing" : "Music paused")
+        .accessibilityLabel(isPlaying ? "音乐播放中" : "音乐已暂停")
     }
 
     private func barHeight(_ index: Int, at date: Date) -> CGFloat {

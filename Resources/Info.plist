@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
+    <string>zh_CN</string>
     <key>CFBundleExecutable</key>
     <string>Renotch</string>
     <key>CFBundleIconFile</key>
@@ -29,14 +29,18 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Re:notch uses Apple Music and Spotify access to show the current song and control playback.</string>
+	<string>Re:notch 使用 Apple Music 和 Spotify 的访问权限显示歌曲信息并控制播放。</string>
     <key>NSCalendarsUsageDescription</key>
-    <string>Re:notch shows your upcoming Apple Calendar events in the notch.</string>
+    <string>Re:notch 在刘海区域显示你即将开始的苹果日历日程。</string>
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Re:notch shows your upcoming Apple Calendar events in the notch.</string>
+    <string>Re:notch 在刘海区域显示你即将开始的苹果日历日程。</string>
     <key>NSUserNotificationAlertStyle</key>
     <string>alert</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026. All rights reserved.</string>
+    <string>版权所有 © 2026。保留所有权利。</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>zh-Hans</string>
+    </array>
 </dict>
 </plist>

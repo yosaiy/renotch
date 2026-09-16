@@ -56,6 +56,8 @@ struct ExpandedNotchView: View {
                 calendar: model.calendar,
                 navigate: select
             )
+        case .codex:
+            CodexActivityView(service: model.codex)
         case .activity:
             DeveloperActivityView(service: model.activity)
         case .music:
@@ -89,32 +91,37 @@ struct ExpandedNotchView: View {
             if model.settings.resolvedHeaderNavigationStyle != .bottomDock {
                 HStack(spacing: 2) {
                     SectionButton(
-                        title: "Music",
+                        title: "Codex",
+                        icon: "bubble.left.and.bubble.right",
+                        isSelected: isSelected(.codex)
+                    ) { select(.codex) }
+                    SectionButton(
+                        title: "音乐",
                         icon: "waveform",
                         isSelected: isSelected(.music)
                     ) { select(.music) }
                     SectionButton(
-                        title: "Coding",
+                        title: "开发活动",
                         icon: "chevron.left.forwardslash.chevron.right",
                         isSelected: isSelected(.activity)
                     ) { select(.activity) }
                     SectionButton(
-                        title: "File Shelf",
+                        title: "文件暂存",
                         icon: "tray.full.fill",
                         isSelected: isSelected(.shelf)
                     ) { select(.shelf) }
                     SectionButton(
-                        title: "Timer",
+                        title: "计时器",
                         icon: "timer",
                         isSelected: isSelected(.timer)
                     ) { select(.timer) }
                     SectionButton(
-                        title: "Todos",
+                        title: "待办",
                         icon: "checklist",
                         isSelected: isSelected(.todo)
                     ) { select(.todo) }
                     SectionButton(
-                        title: "Calendar",
+                        title: "日历",
                         icon: "calendar",
                         isSelected: isSelected(.calendar)
                     ) { select(.calendar) }
@@ -145,6 +152,18 @@ struct ExpandedNotchView: View {
             }
 
             Button {
+                AppDelegate.shared?.openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 25, height: 25)
+            }
+            .buttonStyle(.plain)
+            .help("设置")
+            .accessibilityLabel("设置")
+
+            Button {
                 model.collapse(force: true)
             } label: {
                 Image(systemName: "chevron.up")
@@ -161,32 +180,37 @@ struct ExpandedNotchView: View {
     private var bottomDockView: some View {
         HStack(spacing: 3) {
             SectionButton(
-                title: "Music",
+                title: "Codex",
+                icon: "bubble.left.and.bubble.right",
+                isSelected: isSelected(.codex)
+            ) { select(.codex) }
+            SectionButton(
+                title: "音乐",
                 icon: "waveform",
                 isSelected: isSelected(.music)
             ) { select(.music) }
             SectionButton(
-                title: "Coding",
+                title: "开发活动",
                 icon: "chevron.left.forwardslash.chevron.right",
                 isSelected: isSelected(.activity)
             ) { select(.activity) }
             SectionButton(
-                title: "File Shelf",
+                title: "文件暂存",
                 icon: "tray.full.fill",
                 isSelected: isSelected(.shelf)
             ) { select(.shelf) }
             SectionButton(
-                title: "Timer",
+                title: "计时器",
                 icon: "timer",
                 isSelected: isSelected(.timer)
             ) { select(.timer) }
             SectionButton(
-                title: "Todos",
+                title: "待办",
                 icon: "checklist",
                 isSelected: isSelected(.todo)
             ) { select(.todo) }
             SectionButton(
-                title: "Calendar",
+                title: "日历",
                 icon: "calendar",
                 isSelected: isSelected(.calendar)
             ) { select(.calendar) }
@@ -218,7 +242,7 @@ private struct DashboardHeaderButton: View {
             HStack(spacing: 6) {
                 Image(systemName: "rectangle.grid.2x2.fill")
                     .font(.system(size: 10, weight: .semibold))
-                Text("Dashboard")
+                Text("总览")
                     .font(.system(size: 10.5, weight: .semibold))
                     .lineLimit(1)
                     .fixedSize()
@@ -244,7 +268,7 @@ private struct DashboardHeaderButton: View {
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.16), value: isHovering)
         .animation(.snappy(duration: 0.24), value: isSelected)
-        .help("Quick activity summary")
-        .accessibilityLabel("Dashboard")
+        .help("查看活动总览")
+        .accessibilityLabel("总览")
     }
 }

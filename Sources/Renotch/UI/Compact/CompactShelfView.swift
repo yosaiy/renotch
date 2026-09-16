@@ -12,10 +12,10 @@ struct CompactShelfView: View {
                 .background(Circle().fill(Color.notchAccent.opacity(0.12)))
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("\(shelf.items.count) \(shelf.items.count == 1 ? "file" : "files")")
+                Text("\(shelf.items.count) 个文件")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
-                Text("Click or hover to open shelf")
+                Text("点击或悬停查看暂存文件")
                     .font(.system(size: 8.5, weight: .medium))
                     .foregroundStyle(Color.notchMuted)
             }

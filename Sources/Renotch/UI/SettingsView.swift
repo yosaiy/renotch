@@ -9,9 +9,9 @@ private enum GlassMaterialLevel: Double, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .ultraThin: return "Ultra Thin"
-        case .thin: return "Thin"
-        case .regular: return "Regular"
+        case .ultraThin: return "超薄"
+        case .thin: return "轻薄"
+        case .regular: return "标准"
         }
     }
 
@@ -25,10 +25,10 @@ private enum GlassMaterialLevel: Double, CaseIterable, Identifiable {
 }
 
 private enum SettingsTab: String, CaseIterable, Identifiable {
-    case general = "General"
-    case appearance = "Appearance"
-    case blocker = "Focus Blocker"
-    case privacy = "Privacy"
+    case general = "通用"
+    case appearance = "外观"
+    case blocker = "专注屏蔽"
+    case privacy = "隐私"
 
     var id: String { rawValue }
 
@@ -43,10 +43,10 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .general: return "Behavior, display target & timing"
-        case .appearance: return "Notch style, sizing & padding"
-        case .blocker: return "Distraction blocker & screen takeover"
-        case .privacy: return "Notifications & permissions"
+        case .general: return "操作方式、显示器与时间"
+        case .appearance: return "刘海外观、尺寸与间距"
+        case .blocker: return "干扰屏蔽与全屏提醒"
+        case .privacy: return "通知与权限"
         }
     }
 }
@@ -97,7 +97,7 @@ struct SettingsView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
 
-                    Text("Preferences")
+                    Text("偏好设置")
                         .font(.system(size: 10, weight: .regular))
                         .foregroundStyle(.tertiary)
                 }
@@ -136,7 +136,7 @@ struct SettingsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 11, weight: .medium))
-                        Text("Restore Defaults")
+                        Text("恢复默认设置")
                             .font(.system(size: 11, weight: .medium))
                     }
                     .foregroundStyle(.secondary)
@@ -154,7 +154,7 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
 
                 if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                    Text("Version \(version)")
+                    Text("版本 \(version)")
                         .font(.system(size: 10, weight: .regular))
                         .foregroundStyle(.tertiary)
                         .padding(.leading, 4)
@@ -206,11 +206,31 @@ struct SettingsView: View {
     private var generalTabContent: some View {
         VStack(spacing: 16) {
             // Behavior Card
-            SettingCard(title: "Behavior", icon: "gearshape.fill", iconColor: .blue) {
+            SettingCard(title: "Codex 任务", icon: "bubble.left.and.bubble.right", iconColor: .cyan) {
+                SettingRow(title: "显示 Codex 任务状态", subtitle: "展示所有本机执行中的任务，待回答和待批准的任务优先") {
+                    Toggle("", isOn: Binding(get: { model.settings.codexEnabled != false }, set: { model.settings.codexEnabled = $0 })).toggleStyle(.switch)
+                }
+                SettingRow(title: "显示问题摘要", subtitle: "在任务卡片中显示待回答的问题与选项") {
+                    Toggle("", isOn: Binding(get: { model.settings.codexShowQuestions != false }, set: { model.settings.codexShowQuestions = $0 })).toggleStyle(.switch)
+                }
+                SettingRow(title: "显示剩余用量", subtitle: "显示账号剩余额度与重置时间，每分钟自动刷新") {
+                    Toggle("显示剩余用量", isOn: Binding(get: { model.settings.codexShowUsage != false }, set: { model.settings.codexShowUsage = $0 }))
+                        .toggleStyle(.switch).labelsHidden()
+                }
+                SettingRow(title: "保留已结束任务", subtitle: "已结束任务在面板中折叠展示，不挤占执行中任务的位置") {
+                    Picker("", selection: Binding(get: { model.settings.codexCompletionSeconds ?? 120 }, set: { model.settings.codexCompletionSeconds = $0 })) {
+                        Text("不保留").tag(0.0)
+                        Text("2 分钟").tag(120.0)
+                        Text("10 分钟").tag(600.0)
+                    }.frame(width: 110)
+                }
+            }
+
+            SettingCard(title: "操作方式", icon: "gearshape.fill", iconColor: .blue) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Show Re:notch",
-                        subtitle: "Enable or hide the notch interface"
+                        title: "显示 Re:notch",
+                        subtitle: "显示或隐藏刘海界面"
                     ) {
                         Toggle("", isOn: visibilityBinding)
                             .toggleStyle(.switch)
@@ -220,8 +240,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Launch at login",
-                        subtitle: "Automatically start Re:notch on startup"
+                        title: "登录时启动",
+                        subtitle: "登录 Mac 后自动启动 Re:notch"
                     ) {
                         Toggle("", isOn: $model.settings.launchAtLogin)
                             .toggleStyle(.switch)
@@ -231,8 +251,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Default compact view",
-                        subtitle: "Choose default widget for compact notch"
+                        title: "默认收起视图",
+                        subtitle: "选择刘海收起时显示的内容"
                     ) {
                         Picker("", selection: compactContentBinding) {
                             ForEach(CompactNotchContent.allCases) { content in
@@ -246,8 +266,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Expand on hover",
-                        subtitle: "Open full notch view when mouse hovers over notch"
+                        title: "悬停时展开",
+                        subtitle: "将鼠标移到刘海区域时展开面板"
                     ) {
                         Toggle("", isOn: $model.settings.expandOnHover)
                             .toggleStyle(.switch)
@@ -257,8 +277,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Expand on click",
-                        subtitle: "Expand notch on mouse click"
+                        title: "点击时展开",
+                        subtitle: "点击刘海区域时展开面板"
                     ) {
                         Toggle("", isOn: $model.settings.expandOnClick)
                             .toggleStyle(.switch)
@@ -268,8 +288,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Always on top",
-                        subtitle: "Keep notch window floating above regular app windows"
+                        title: "始终置顶",
+                        subtitle: "让刘海浮在其他应用窗口上方"
                     ) {
                         Toggle("", isOn: $model.settings.alwaysOnTop)
                             .toggleStyle(.switch)
@@ -279,8 +299,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 8)
 
                     SettingRow(
-                        title: "Show over full-screen apps",
-                        subtitle: "Maintain visibility even in full-screen space"
+                        title: "在全屏应用上方显示",
+                        subtitle: "切换到全屏应用时仍显示刘海"
                     ) {
                         Toggle("", isOn: $model.settings.showOnFullscreen)
                             .toggleStyle(.switch)
@@ -290,41 +310,62 @@ struct SettingsView: View {
             }
 
             // Display Card
-            SettingCard(title: "Display & Timing", icon: "display", iconColor: .purple) {
+            SettingCard(title: "显示器与时间", icon: "display", iconColor: .purple) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Target monitor",
-                        subtitle: "Select display to attach the Re:notch overlay"
+                        title: "显示器模式",
+                        subtitle: model.settings.followForegroundWindow == true
+                            ? "切换前台窗口或将窗口移到另一块屏幕时，刘海自动跟随"
+                            : "刘海保持在所选屏幕，不随前台窗口变化"
+                    ) {
+                        Picker("显示器模式", selection: Binding(
+                            get: { model.settings.followForegroundWindow == true },
+                            set: { model.settings.followForegroundWindow = $0 }
+                        )) {
+                            Text("固定到指定显示器").tag(false)
+                            Text("跟随前台窗口").tag(true)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(width: 170)
+                    }
+
+                    Divider().opacity(0.12).padding(.vertical, 12)
+
+                    SettingRow(
+                        title: "目标显示器",
+                        subtitle: model.settings.followForegroundWindow == true ? "切回固定模式时使用此屏幕" : "选择用于显示 Re:notch 的屏幕"
                     ) {
                         Picker("", selection: $model.settings.targetDisplayID) {
-                            Text("Main display").tag(nil as UInt32?)
+                            Text("主显示器").tag(nil as UInt32?)
                             ForEach(screenManager.displays) { display in
                                 Text(display.name).tag(Optional(display.id))
                             }
                         }
                         .pickerStyle(.menu)
                         .frame(width: 160)
+                        .disabled(model.settings.followForegroundWindow == true)
                     }
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Collapse delay",
-                        subtitle: "Time before notch shrinks back after pointer leaves",
+                        title: "收起延迟",
+                        subtitle: "鼠标移开后等待多久收起",
                         value: $model.settings.collapseDelay,
                         range: 0.3...1.2,
-                        suffix: "s",
+                        suffix: " 秒",
                         precision: 1
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Top offset",
-                        subtitle: "Vertical distance from the top edge of screen",
+                        title: "顶部偏移",
+                        subtitle: "刘海距离屏幕顶边的距离",
                         value: $model.settings.verticalOffset,
                         range: 0...40,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
                 }
@@ -357,14 +398,14 @@ struct SettingsView: View {
     private var appearanceTabContent: some View {
         VStack(spacing: 16) {
             // Notch Style Card
-            SettingCard(title: "Notch Style", icon: "paintpalette.fill", iconColor: .indigo) {
+            SettingCard(title: "刘海外观", icon: "paintpalette.fill", iconColor: .indigo) {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Surface Material")
+                        Text("表面材质")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
 
-                        Picker("Surface", selection: appearanceBinding) {
+                        Picker("材质", selection: appearanceBinding) {
                             ForEach(NotchAppearance.allCases) { appearance in
                                 Text(appearance.title).tag(appearance)
                             }
@@ -375,11 +416,11 @@ struct SettingsView: View {
                     if model.settings.resolvedAppearance == .liquidGlass,
                        #unavailable(macOS 26.0) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Frosted Material Blur Level")
+                            Text("磨砂材质模糊强度")
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
 
-                            Picker("Frosted blur", selection: glassMaterialBinding) {
+                            Picker("模糊程度", selection: glassMaterialBinding) {
                                 ForEach(GlassMaterialLevel.allCases) { level in
                                     Text(level.title).tag(level)
                                 }
@@ -404,11 +445,11 @@ struct SettingsView: View {
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.settings.resolvedAppearance)
 
             // Compact Notch Section Card
-            SettingCard(title: "Compact Notch Dimensions", icon: "rectangle.compress.vertical", iconColor: .cyan) {
+            SettingCard(title: "收起视图尺寸", icon: "rectangle.compress.vertical", iconColor: .cyan) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Show song name & artist",
-                        subtitle: "Applies to Music view. When off, only artwork and audio waveform appear."
+                        title: "显示歌曲名与歌手",
+                        subtitle: "用于音乐视图。关闭后仅显示封面和音频波形。"
                     ) {
                         Toggle("", isOn: compactTrackInfoBinding)
                             .toggleStyle(.switch)
@@ -418,33 +459,33 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Width",
-                        subtitle: "Compact width of the notch",
+                        title: "宽度",
+                        subtitle: "刘海收起时的宽度",
                         value: $model.settings.compactWidth,
                         range: NotchSettings.compactWidthRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Height",
-                        subtitle: "Compact height of the notch",
+                        title: "高度",
+                        subtitle: "刘海收起时的高度",
                         value: $model.settings.compactHeight,
                         range: NotchSettings.compactHeightRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Corner radius",
-                        subtitle: "Outer bottom corner radius",
+                        title: "圆角半径",
+                        subtitle: "刘海底部外侧圆角的半径",
                         value: compactCornerRadiusBinding,
                         range: NotchSettings.compactCornerRadiusRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
@@ -452,56 +493,56 @@ struct SettingsView: View {
                         Divider().opacity(0.12).padding(.vertical, 12)
 
                         AppleValueSlider(
-                            title: "Left padding",
-                            subtitle: "Inner left margin",
+                            title: "左侧间距",
+                            subtitle: "内容距离左边缘的距离",
                             value: paddingBinding(
                                 \.compactContentLeadingPadding,
                                 resolved: \.resolvedCompactContentLeadingPadding
                             ),
                             range: NotchSettings.compactContentHorizontalPaddingRange,
-                            suffix: " pt",
+                            suffix: " 点",
                             precision: 0
                         )
 
                         Divider().opacity(0.12).padding(.vertical, 12)
 
                         AppleValueSlider(
-                            title: "Right padding",
-                            subtitle: "Inner right margin",
+                            title: "右侧间距",
+                            subtitle: "内容距离右边缘的距离",
                             value: paddingBinding(
                                 \.compactContentTrailingPadding,
                                 resolved: \.resolvedCompactContentTrailingPadding
                             ),
                             range: NotchSettings.compactContentHorizontalPaddingRange,
-                            suffix: " pt",
+                            suffix: " 点",
                             precision: 0
                         )
 
                         Divider().opacity(0.12).padding(.vertical, 12)
 
                         AppleValueSlider(
-                            title: "Top padding",
-                            subtitle: "Inner top margin",
+                            title: "顶部间距",
+                            subtitle: "内容距离顶边缘的距离",
                             value: paddingBinding(
                                 \.compactContentTopPadding,
                                 resolved: \.resolvedCompactContentTopPadding
                             ),
                             range: NotchSettings.compactContentVerticalPaddingRange,
-                            suffix: " pt",
+                            suffix: " 点",
                             precision: 0
                         )
 
                         Divider().opacity(0.12).padding(.vertical, 12)
 
                         AppleValueSlider(
-                            title: "Bottom padding",
-                            subtitle: "Inner bottom margin",
+                            title: "底部间距",
+                            subtitle: "内容距离底边缘的距离",
                             value: paddingBinding(
                                 \.compactContentBottomPadding,
                                 resolved: \.resolvedCompactContentBottomPadding
                             ),
                             range: NotchSettings.compactContentVerticalPaddingRange,
-                            suffix: " pt",
+                            suffix: " 点",
                             precision: 0
                         )
                     }
@@ -509,11 +550,11 @@ struct SettingsView: View {
             }
 
             // Hardware Notch & Navigation Card
-            SettingCard(title: "Hardware Notch & Navigation", icon: "laptopcomputer.and.ipad", iconColor: .blue) {
+            SettingCard(title: "实体刘海与导航", icon: "laptopcomputer.and.ipad", iconColor: .blue) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Avoid MacBook Hardware Notch",
-                        subtitle: "Adds top clearance so header icons are never covered by the physical MacBook screen notch"
+                        title: "避开 MacBook 实体刘海",
+                        subtitle: "为顶部预留空间，避免导航图标被屏幕实体刘海遮挡"
                     ) {
                         Toggle("", isOn: avoidHardwareNotchBinding)
                             .toggleStyle(.switch)
@@ -523,7 +564,7 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     SettingRow(
-                        title: "Navigation Bar Style",
+                        title: "导航栏位置",
                         subtitle: model.settings.resolvedHeaderNavigationStyle.subtitle
                     ) {
                         Picker("", selection: headerNavigationStyleBinding) {
@@ -539,29 +580,29 @@ struct SettingsView: View {
             }
 
             // Expanded Notch Section Card
-            SettingCard(title: "Expanded Notch Dimensions", icon: "rectangle.expand.vertical", iconColor: .orange) {
+            SettingCard(title: "展开视图尺寸", icon: "rectangle.expand.vertical", iconColor: .orange) {
                 VStack(spacing: 0) {
                     AppleValueSlider(
-                        title: "Width",
-                        subtitle: "Expanded width of the open notch panel",
+                        title: "宽度",
+                        subtitle: "面板展开后的宽度",
                         value: $model.settings.expandedWidth,
                         range: NotchSettings.expandedWidthRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     SettingRow(
-                        title: "Quick Width Preset",
-                        subtitle: "Match expanded width directly to compact width"
+                        title: "宽度快捷设置",
+                        subtitle: "让展开视图与收起视图使用相同宽度"
                     ) {
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 model.settings.expandedWidth = model.settings.compactWidth
                             }
                         } label: {
-                            Label("Match compact width", systemImage: "arrow.right.to.line")
+                            Label("与收起宽度一致", systemImage: "arrow.right.to.line")
                                 .font(.system(size: 11, weight: .medium))
                         }
                         .buttonStyle(.bordered)
@@ -572,67 +613,67 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Height",
-                        subtitle: "Expanded height when open",
+                        title: "高度",
+                        subtitle: "面板展开后的高度",
                         value: $model.settings.expandedHeight,
                         range: NotchSettings.expandedHeightRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Left padding",
-                        subtitle: "Expanded inner left margin",
+                        title: "左侧间距",
+                        subtitle: "展开后内容的左侧间距",
                         value: paddingBinding(
                             \.expandedContentLeadingPadding,
                             resolved: \.resolvedExpandedContentLeadingPadding
                         ),
                         range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Right padding",
-                        subtitle: "Expanded inner right margin",
+                        title: "右侧间距",
+                        subtitle: "展开后内容的右侧间距",
                         value: paddingBinding(
                             \.expandedContentTrailingPadding,
                             resolved: \.resolvedExpandedContentTrailingPadding
                         ),
                         range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Top padding",
-                        subtitle: "Expanded inner top margin",
+                        title: "顶部间距",
+                        subtitle: "展开后内容的顶部间距",
                         value: paddingBinding(
                             \.expandedContentTopPadding,
                             resolved: \.resolvedExpandedContentTopPadding
                         ),
                         range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
 
                     Divider().opacity(0.12).padding(.vertical, 12)
 
                     AppleValueSlider(
-                        title: "Bottom padding",
-                        subtitle: "Expanded inner bottom margin",
+                        title: "底部间距",
+                        subtitle: "展开后内容的底部间距",
                         value: paddingBinding(
                             \.expandedContentBottomPadding,
                             resolved: \.resolvedExpandedContentBottomPadding
                         ),
                         range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
+                        suffix: " 点",
                         precision: 0
                     )
                 }
@@ -645,10 +686,10 @@ struct SettingsView: View {
     private var privacyTabContent: some View {
         VStack(spacing: 16) {
             // Notifications Card
-            SettingCard(title: "Notifications", icon: "bell.badge.fill", iconColor: .pink) {
+            SettingCard(title: "通知", icon: "bell.badge.fill", iconColor: .pink) {
                 SettingRow(
-                    title: "Notify when timers finish",
-                    subtitle: "Send a system notification banner when a timer reaches zero"
+                    title: "计时结束时通知",
+                    subtitle: "计时结束后显示系统通知"
                 ) {
                     Toggle("", isOn: $model.settings.timerNotificationsEnabled)
                         .toggleStyle(.switch)
@@ -657,7 +698,7 @@ struct SettingsView: View {
             }
 
             // About Card
-            SettingCard(title: "About & Privacy Guarantee", icon: "shield.checkerboard", iconColor: .blue) {
+            SettingCard(title: "关于与隐私", icon: "shield.checkerboard", iconColor: .blue) {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
                         appIconView(size: 38)
@@ -667,7 +708,7 @@ struct SettingsView: View {
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundStyle(.primary)
 
-                            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0")")
+                            Text("版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0")")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
@@ -686,7 +727,7 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                             .foregroundStyle(.secondary)
 
-                        Text("No account, cloud sync, or background analytics. All your data stays strictly local on this Mac.")
+                        Text("无需额外账号，不进行后台分析。任务状态在本机处理；剩余用量通过已登录的 Codex 账号只读查询，不上传任务内容。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineSpacing(2)
@@ -701,11 +742,11 @@ struct SettingsView: View {
     private var focusBlockerTabContent: some View {
         VStack(spacing: 16) {
             // Master Blocker Card
-            SettingCard(title: "Distraction Shield & Screen Takeover", icon: "shield.fill", iconColor: .red) {
+            SettingCard(title: "干扰屏蔽与全屏提醒", icon: "shield.fill", iconColor: .red) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Enable Focus Blocker",
-                        subtitle: "Automatically trigger fullscreen takeover when opening distracting websites"
+                        title: "启用专注屏蔽",
+                        subtitle: "打开干扰网站时自动显示全屏提醒"
                     ) {
                         Toggle("", isOn: focusBlockerEnabledBinding)
                             .toggleStyle(.switch)
@@ -715,8 +756,8 @@ struct SettingsView: View {
                     Divider().opacity(0.12).padding(.vertical, 10)
 
                     SettingRow(
-                        title: "Strict Pomodoro Only",
-                        subtitle: "Only block websites during active Focus sessions (not during Break or idle)"
+                        title: "仅在专注时屏蔽",
+                        subtitle: "仅在专注计时期间屏蔽网站，休息和空闲时不屏蔽"
                     ) {
                         Toggle("", isOn: focusBlockerStrictBinding)
                             .toggleStyle(.switch)
@@ -728,13 +769,13 @@ struct SettingsView: View {
                     // Accessibility Permissions Status
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("macOS Accessibility Permission")
+                            Text("macOS 辅助功能权限")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(.primary)
 
                             Text(model.focusBlocker.isAccessibilityGranted
-                                 ? "Permission active. Re:notch can detect frontmost browser window titles."
-                                 : "Required to detect active browser window titles and tabs.")
+                                 ? "已授权，Re:notch 可以读取当前浏览器窗口的标题。"
+                                 : "识别当前浏览器窗口和标签页需要此权限。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -745,7 +786,7 @@ struct SettingsView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(.green)
-                                Text("Active")
+                                Text("已启用")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundStyle(.green)
                             }
@@ -754,7 +795,7 @@ struct SettingsView: View {
                             .background(Color.green.opacity(0.12))
                             .clipShape(Capsule())
                         } else {
-                            Button("Grant Access") {
+                            Button("授予权限") {
                                 model.focusBlocker.requestAccessibilityPermission()
                             }
                             .buttonStyle(.borderedProminent)
@@ -766,15 +807,15 @@ struct SettingsView: View {
             }
 
             // Blacklist Rules Management Card
-            SettingCard(title: "Blocked Domains & Keywords", icon: "list.bullet.rectangle.portrait.fill", iconColor: .orange) {
+            SettingCard(title: "屏蔽域名与关键词", icon: "list.bullet.rectangle.portrait.fill", iconColor: .orange) {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Add domain names or keywords (e.g. youtube.com, twitter.com, threads.net).")
+                    Text("添加要屏蔽的域名或关键词，例如 youtube.com、twitter.com。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
                     // Add Custom Rule Field
                     HStack(spacing: 8) {
-                        TextField("Enter domain or keyword (e.g. reddit.com)...", text: $newRuleInput)
+                        TextField("输入域名或关键词，例如 reddit.com…", text: $newRuleInput)
                             .textFieldStyle(.plain)
                             .padding(8)
                             .background(Color.white.opacity(0.06))
@@ -792,7 +833,7 @@ struct SettingsView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "plus")
-                                Text("Add")
+                                Text("添加")
                             }
                             .font(.system(size: 12, weight: .medium))
                             .padding(.horizontal, 12)
@@ -807,7 +848,7 @@ struct SettingsView: View {
 
                     // Presets Quick Add
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Quick Presets")
+                        Text("快捷预设")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(.tertiary)
 
@@ -844,13 +885,13 @@ struct SettingsView: View {
                     // Current Active Rules List
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Active Rules (\(model.settings.resolvedFocusBlockerCustomRules.count))")
+                            Text("已启用的规则（\(model.settings.resolvedFocusBlockerCustomRules.count)）")
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(.primary)
 
                             Spacer()
 
-                            Button("Reset to Defaults") {
+                            Button("恢复默认规则") {
                                 model.settings.focusBlockerCustomRules = FocusBlockerService.defaultRules
                             }
                             .font(.caption)
@@ -889,14 +930,14 @@ struct SettingsView: View {
             }
 
             // Preview & Testing Card
-            SettingCard(title: "Preview & Diagnostics", icon: "play.circle.fill", iconColor: .purple) {
+            SettingCard(title: "预览与检查", icon: "play.circle.fill", iconColor: .purple) {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Test Fullscreen Takeover Overlay")
+                        Text("测试全屏专注提醒")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.primary)
 
-                        Text("Preview the fluid Apple Design spring animation and HTML takeover screen.")
+                        Text("预览全屏提醒界面与展开动画。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -912,7 +953,7 @@ struct SettingsView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "sparkles")
-                            Text("Preview Takeover")
+                            Text("预览全屏提醒")
                         }
                         .font(.system(size: 12, weight: .semibold))
                     }
@@ -1058,12 +1099,12 @@ struct SettingsView: View {
     private var appearanceDescription: String {
         switch model.settings.resolvedAppearance {
         case .black:
-            return "A solid deep black surface engineered to seamlessly merge with physical MacBook display cutouts."
+            return "纯黑表面，与 MacBook 屏幕的实体刘海自然衔接。"
         case .liquidGlass:
             if #available(macOS 26.0, *) {
-                return "Apple Liquid Glass material that dynamically refracts background color and light."
+                return "苹果液态玻璃材质，随背景颜色与光线呈现变化。"
             }
-            return "A translucent frosted material fallback for macOS versions prior to native Liquid Glass."
+            return "在尚不支持液态玻璃的 macOS 上使用半透明磨砂材质。"
         }
     }
 }

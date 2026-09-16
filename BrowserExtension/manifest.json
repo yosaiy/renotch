@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Re:notch Browser Activity",
+  "name": "Re:notch 浏览器活动",
   "version": "1.0.1",
-  "description": "Shows YouTube playback and browser download progress in Re:notch.",
+  "description": "在 Re:notch 中显示 YouTube 播放状态和浏览器下载进度。",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0SR1oamU7Dvq+bf0OFJssXcgoeISlroHCLgkjRgHJRpkTw7d6tibOX3+ads8bL/4M4sntQjltjS8fnuLstrbum8I8Fxha94sOP8EjXfr6AY00HHYe4pXqCJA2vM/f09H9tPVqSZPV8/qQW+mRv27hwS1LIfvKq4ID/j7iGZuAqvY78ozyl6vVDNWhwQmfg8ghGdjQcUCuc2zH7oAiUm+8m1XKvykCHuYiTmlPefI+2+UbhqoXbuNLjGjsptCY2jS97850WpPAcIReE2Y0WmWzL3dQ3RaZxNWBPW+9LGOxL1vOskFv9RQ6end1q9hDL6xo5hb1puE/tjgQKQLjh8oLQIDAQAB",
   "permissions": [
     "downloads",

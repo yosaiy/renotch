@@ -12,7 +12,7 @@ struct FileDropSuccessView: View {
                 .offset(y: reduceMotion ? 0 : (didSettle ? 8 : -8))
                 .scaleEffect(reduceMotion ? 1 : (didSettle ? 0.72 : 1))
 
-            Text("Added to Shelf")
+            Text("已添加到暂存区")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white)
         }

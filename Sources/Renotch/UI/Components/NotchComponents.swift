@@ -280,12 +280,12 @@ struct ServerFaviconImage: View {
 extension DeveloperActivityKind {
     var title: String {
         switch self {
-        case .localhost: return "Servers"
-        case .build: return "Build"
+        case .localhost: return "本地服务"
+        case .build: return "构建"
         case .docker: return "Docker"
         case .git: return "Git"
-        case .deployment: return "Deploy"
-        case .terminal: return "Terminal"
+        case .deployment: return "部署"
+        case .terminal: return "终端"
         }
     }
 
@@ -324,10 +324,10 @@ extension DeveloperActivityState {
 
     var compactLabel: String {
         switch self {
-        case .running: return "LIVE"
-        case .success: return "DONE"
-        case .failed: return "FAILED"
-        case .idle: return "READY"
+        case .running: return "进行中"
+        case .success: return "已完成"
+        case .failed: return "失败"
+        case .idle: return "就绪"
         }
     }
 }

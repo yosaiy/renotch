@@ -145,7 +145,7 @@ final class FocusBlockerService: ObservableObject {
 
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
         let bundleID = frontApp.bundleIdentifier ?? ""
-        let appName = frontApp.localizedName ?? "Browser"
+        let appName = frontApp.localizedName ?? "浏览器"
 
         let isOurApp = frontApp.processIdentifier == ProcessInfo.processInfo.processIdentifier
             || frontApp == NSRunningApplication.current

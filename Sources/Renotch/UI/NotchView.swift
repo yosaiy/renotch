@@ -206,7 +206,7 @@ struct NotchView: View {
                 ExpandedNotchView(timer: model.timer)
                     .frame(
                         width: notchWidth,
-                        height: model.settings.expandedHeight + (model.settings.isHardwareNotchSafeActive ? 26 : 0),
+                        height: notchHeight,
                         alignment: .top
                     )
                     .transition(
@@ -230,7 +230,7 @@ struct NotchView: View {
                     activity: model.activity,
                     todos: model.todos
                 )
-                .frame(width: notchWidth, height: model.settings.compactHeight, alignment: .center)
+                .frame(width: notchWidth, height: notchHeight, alignment: .center)
                 .transition(
                     .asymmetric(
                         insertion: .opacity.combined(with: .scale(scale: 0.95)),

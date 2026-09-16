@@ -36,7 +36,7 @@ struct FileShelfView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Color.notchAccent)
 
-            Text("File Shelf")
+            Text("文件暂存")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.white)
 
@@ -47,7 +47,7 @@ struct FileShelfView: View {
 
             Spacer(minLength: 4)
 
-            shelfButton(title: "Clear", icon: "trash") {
+            shelfButton(title: "清空", icon: "trash") {
                 model.clearShelf()
             }
             .disabled(shelf.items.isEmpty)
@@ -72,11 +72,11 @@ struct FileShelfView: View {
             }
 
             VStack(spacing: 4) {
-                Text("Shelf is empty")
+                Text("暂存区为空")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
 
-                Text("Drag files onto the notch to add them")
+                Text("将文件拖到刘海上，即可添加到暂存区")
                     .font(.system(size: 11.5, weight: .regular))
                     .foregroundStyle(Color.notchMuted)
             }
@@ -141,27 +141,27 @@ private struct ShelfItemView: View {
             return NSItemProvider(contentsOf: item.url) ?? NSItemProvider()
         }
         .contextMenu {
-            Button("Open") { NSWorkspace.shared.open(item.url) }
+            Button("打开") { NSWorkspace.shared.open(item.url) }
                 .disabled(!item.isAvailable)
 
-            Button("Reveal in Finder") {
+            Button("在访达中显示") {
                 NSWorkspace.shared.activateFileViewerSelecting([item.url])
             }
             .disabled(!item.isAvailable)
 
-            Button("Copy Path") {
+            Button("复制路径") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(item.url.path, forType: .string)
             }
 
             Divider()
 
-            Button("Remove", role: .destructive, action: remove)
+            Button("移除", role: .destructive, action: remove)
         }
-        .help(item.isAvailable ? item.url.path : "File is no longer available")
+        .help(item.isAvailable ? item.url.path : "文件已不可用")
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.displayName)
-        .accessibilityValue(item.isAvailable ? "Available" : "File is no longer available")
+        .accessibilityValue(item.isAvailable ? "可用" : "文件已不可用")
     }
 }
 

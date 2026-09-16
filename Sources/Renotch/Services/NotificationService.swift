@@ -53,13 +53,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         switch mode {
         case .focus:
-            content.title = "Focus Session Finished"
+            content.title = "专注时段结束"
             content.body = autoAdvance
-                ? "Great work! Starting \(breakMinutes)-minute break now."
-                : "Great work! Time to take a break."
+                ? "专注完成，现在开始 \(breakMinutes) 分钟休息。"
+                : "专注完成，休息一下吧。"
         case .breakTime:
-            content.title = "Break Finished"
-            content.body = "Ready to start your next focus session?"
+            content.title = "休息结束"
+            content.body = "准备好开始下一轮专注了吗？"
         }
         content.sound = .default
 
@@ -84,13 +84,13 @@ final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         let content = UNMutableNotificationContent()
         switch mode {
         case .focus:
-            content.title = "Focus Session Finished"
+            content.title = "专注时段结束"
             content.body = autoAdvance
-                ? "Great work! Starting \(breakMinutes)-minute break now."
-                : "Great work! Time to take a break."
+                ? "专注完成，现在开始 \(breakMinutes) 分钟休息。"
+                : "专注完成，休息一下吧。"
         case .breakTime:
-            content.title = "Break Finished"
-            content.body = "Ready to start your next focus session?"
+            content.title = "休息结束"
+            content.body = "准备好开始下一轮专注了吗？"
         }
         content.sound = .default
 

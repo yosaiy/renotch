@@ -14,6 +14,10 @@ Turn your Mac's notch into a lightweight, native developer command center.
 
 </div>
 
+[简体中文使用、构建与兼容性说明](README.zh-CN.md)
+
+本分支增加 Codex 多任务状态与账号剩余用量、前台窗口跨屏跟随、QQ 音乐联动，并将界面设为简体中文。功能说明、配置默认值和内部接口限制见中文文档。上游 v1.7.0 发布包尚未包含这些改动。
+
 ---
 
 ## Features
@@ -31,7 +35,7 @@ Turn your Mac's notch into a lightweight, native developer command center.
 ![Pomodoro + Website Blocker](public/Pomodoro.gif)
 
 - **Browser Bridge**: YouTube playback and Chromium download monitor.
-- **Native & Private**: Swift/SwiftUI, fluid animations, 100% local, zero telemetry.
+- **Native & Private**: Swift/SwiftUI, fluid animations, zero telemetry. See the privacy notes below for optional Codex account usage queries.
 
 ---
 
@@ -44,6 +48,7 @@ Grab the latest `Re:notch.app` from **[Releases](https://github.com/yosaiy/renot
 ```bash
 git clone https://github.com/yosaiy/renotch.git
 cd renotch
+./scripts/build-music-bridge.sh
 swift run Renotch
 ```
 
@@ -65,7 +70,7 @@ Enables YouTube and download tracking:
 
 ## Privacy
 
-Re:notch is **100% local**. No accounts, no telemetry, no cloud sync. All data stays on your Mac.
+任务状态、问题摘要和 QQ 音乐元数据在本机处理，不上传任务正文，不发送统计数据。Codex 剩余用量通过已安装的 CLI 和已有登录状态进行只读账号查询，可在设置中关闭；Re:notch 不读取凭据、不自动回答或批准任务。详情见 [接入方式与边界](README.zh-CN.md#接入方式与边界)。
 
 ---
 

@@ -14,10 +14,10 @@ struct FileDropView: View {
                     value: isTargeted
                 )
 
-            Text("Drop to Shelf")
+            Text("拖入暂存区")
                 .font(.system(size: 14, weight: .semibold))
 
-            Text("Files stay on this Mac and are not copied")
+            Text("文件保留在这台 Mac 的原位置，不会复制")
                 .font(.system(size: 10.5))
                 .foregroundStyle(.secondary)
         }

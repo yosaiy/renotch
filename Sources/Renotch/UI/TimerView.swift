@@ -22,7 +22,7 @@ struct TimerView: View {
             HStack(spacing: 8) {
                 // Focus Card
                 durationCard(
-                    title: "Focus",
+                    title: "专注",
                     icon: "timer",
                     minutes: timer.focusMinutes,
                     presets: [15, 25, 45, 60],
@@ -36,7 +36,7 @@ struct TimerView: View {
 
                 // Break Card
                 durationCard(
-                    title: "Break",
+                    title: "休息",
                     icon: "cup.and.saucer.fill",
                     minutes: timer.breakMinutes,
                     presets: [5, 10, 15, 20],
@@ -60,10 +60,10 @@ struct TimerView: View {
                     Image(systemName: "play.fill")
                         .font(.system(size: 11, weight: .bold))
 
-                    Text("Start Pomodoro")
+                    Text("开始番茄钟")
                         .font(.system(size: 12, weight: .bold))
 
-                    Text("·  \(timer.focusMinutes)m Focus  ➔  \(timer.breakMinutes)m Break")
+                    Text("·  专注 \(timer.focusMinutes) 分钟  ➔  休息 \(timer.breakMinutes) 分钟")
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(Color.white.opacity(0.8))
 
@@ -72,7 +72,7 @@ struct TimerView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "bolt.badge.automatic.fill")
                             .font(.system(size: 9))
-                        Text("Auto-break")
+                        Text("自动休息")
                             .font(.system(size: 9.5, weight: .semibold))
                     }
                     .foregroundStyle(Color.notchAccent)
@@ -114,7 +114,7 @@ struct TimerView: View {
                 Text(title)
                     .font(.system(size: 11, weight: .semibold))
                 Spacer()
-                Text("\(minutes) min")
+                Text("\(minutes) 分钟")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(tint)
             }
@@ -144,7 +144,7 @@ struct TimerView: View {
 
                 HStack(spacing: 2) {
                     Button {
-                        let delta = title == "Focus" ? (minutes > 5 ? -5 : -1) : -1
+                        let delta = title == "专注" ? (minutes > 5 ? -5 : -1) : -1
                         onAdjust(delta)
                     } label: {
                         Image(systemName: "minus")
@@ -155,7 +155,7 @@ struct TimerView: View {
                     .buttonStyle(.plain)
 
                     Button {
-                        let delta = title == "Focus" ? 5 : 1
+                        let delta = title == "专注" ? 5 : 1
                         onAdjust(delta)
                     } label: {
                         Image(systemName: "plus")
@@ -220,19 +220,19 @@ struct TimerView: View {
 
                 VStack(spacing: 5) {
                     SmallActionButton(
-                        title: timer.isPaused ? "Resume" : "Pause",
+                        title: timer.isPaused ? "继续" : "暂停",
                         icon: timer.isPaused ? "play.fill" : "pause.fill",
                         tint: timer.currentMode.tint
                     ) { timer.togglePause() }
 
                     HStack(spacing: 4) {
                         SmallActionButton(
-                            title: timer.currentMode == .focus ? "Break" : "Focus",
+                            title: timer.currentMode == .focus ? "休息" : "专注",
                             icon: "forward.fill"
                         ) {
                             timer.skip()
                         }
-                        SmallActionButton(title: "Cancel", icon: "xmark") {
+                        SmallActionButton(title: "取消", icon: "xmark") {
                             timer.cancel()
                         }
                     }
@@ -251,7 +251,7 @@ struct TimerView: View {
             HStack(spacing: 4) {
                 Image(systemName: "timer")
                     .font(.system(size: 8.5, weight: .bold))
-                Text("Focus \(focusM)m")
+                Text("专注 \(focusM) 分钟")
                     .font(.system(size: 9.5, weight: isFocus ? .bold : .medium))
             }
             .foregroundStyle(isFocus ? Color.notchAccent : Color.white.opacity(0.45))
@@ -274,7 +274,7 @@ struct TimerView: View {
             HStack(spacing: 4) {
                 Image(systemName: "cup.and.saucer.fill")
                     .font(.system(size: 8.5, weight: .bold))
-                Text("Break \(breakM)m")
+                Text("休息 \(breakM) 分钟")
                     .font(.system(size: 9.5, weight: !isFocus ? .bold : .medium))
             }
             .foregroundStyle(!isFocus ? Color(red: 0.42, green: 0.78, blue: 0.98) : Color.white.opacity(0.45))
@@ -295,7 +295,7 @@ struct TimerView: View {
                 HStack(spacing: 3) {
                     Image(systemName: "bolt.badge.automatic.fill")
                         .font(.system(size: 8))
-                    Text("Auto break next")
+                    Text("结束后自动休息")
                         .font(.system(size: 8.5, weight: .medium))
                 }
                 .foregroundStyle(Color.notchMuted)
@@ -305,21 +305,21 @@ struct TimerView: View {
 
     private var activeHeaderTitle: String {
         if timer.isPaused {
-            return "\(timer.currentMode.title) paused"
+            return "\(timer.currentMode.title)已暂停"
         }
-        return "\(timer.currentMode.title) in progress"
+        return "\(timer.currentMode.title)进行中"
     }
 
     private var activeSubtitle: String {
         if timer.isPaused {
-            return "Resume whenever you’re ready."
+            return "准备好后随时继续。"
         }
         switch timer.currentMode {
         case .focus:
             let bMin = timer.storedTimer?.resolvedBreakMinutes ?? timer.breakMinutes
-            return "Break (\(bMin)m) will start automatically when time is up."
+            return "时间结束后，自动开始 \(bMin) 分钟休息。"
         case .breakTime:
-            return "Take a breather. You’ll be notified when break ends."
+            return "放松一下，休息结束后会通知你。"
         }
     }
 }

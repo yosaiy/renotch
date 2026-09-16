@@ -9,13 +9,13 @@ struct WelcomeView: View {
             brandHeader
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Your workspace, one glance away.")
+                Text("抬眼即可掌握工作状态。")
                     .font(.system(size: 18, weight: .semibold))
                     .tracking(-0.45)
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                Text("Servers, builds, and containers stay close without interrupting your flow.")
+                Text("本地服务、构建、容器与 Codex 任务，一眼可见。")
                     .font(.system(size: 10.5, weight: .regular))
                     .foregroundStyle(.white.opacity(0.52))
                     .lineLimit(1)
@@ -27,7 +27,7 @@ struct WelcomeView: View {
 
             HStack(spacing: 12) {
                 Toggle(isOn: $model.settings.expandOnHover) {
-                    Text("Expand on hover")
+                    Text("悬停时展开")
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(.white.opacity(0.68))
                 }
@@ -40,7 +40,7 @@ struct WelcomeView: View {
                     model.completeOnboarding()
                 } label: {
                     HStack(spacing: 6) {
-                        Text("Continue")
+                        Text("继续")
                         Image(systemName: "arrow.right")
                             .font(.system(size: 9, weight: .bold))
                     }
@@ -61,7 +61,7 @@ struct WelcomeView: View {
                 .buttonStyle(WelcomePrimaryButtonStyle())
                 .onHover { isContinueHovered = $0 }
                 .animation(.easeOut(duration: 0.18), value: isContinueHovered)
-                .accessibilityHint("Finish setup and collapse Re:notch")
+                .accessibilityHint("完成设置并收起 Re:notch")
             }
             .padding(.top, 9)
         }
@@ -76,7 +76,7 @@ struct WelcomeView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .tracking(-0.2)
                     .foregroundStyle(.white.opacity(0.96))
-                Text("Developer workspace")
+                Text("开发工作台")
                     .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(.white.opacity(0.38))
             }
@@ -88,7 +88,7 @@ struct WelcomeView: View {
                     .fill(Color.notchAccent)
                     .frame(width: 5, height: 5)
                     .shadow(color: Color.notchAccent.opacity(0.55), radius: 4)
-                Text("Ready")
+                Text("准备就绪")
                     .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(.white.opacity(0.58))
             }
@@ -107,11 +107,11 @@ struct WelcomeView: View {
 
     private var activityRail: some View {
         HStack(spacing: 0) {
-            WelcomeSignal(icon: "network", title: "Servers")
+            WelcomeSignal(icon: "network", title: "本地服务")
             railDivider
-            WelcomeSignal(icon: "hammer.fill", title: "Builds")
+            WelcomeSignal(icon: "hammer.fill", title: "构建")
             railDivider
-            WelcomeSignal(icon: "shippingbox.fill", title: "Containers")
+            WelcomeSignal(icon: "shippingbox.fill", title: "容器")
         }
         .frame(height: 32)
         .background(

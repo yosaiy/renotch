@@ -14,11 +14,11 @@ struct FocusTakeoverView: View {
     @State private var isVisible = false
 
     private static let quotes = [
-        "Lock in twin",
-        "Stay focus &  keep grinding",
-        "Deep work is the superpower of the 21st century.",
-        "Starve your distractions, feed your focus.",
-        "No more brainrot"
+        "进入专注状态",
+        "保持专注，持续推进",
+        "留出时间，专心做好一件事。",
+        "减少干扰，让注意力回到当下。",
+        "暂时放下无尽的信息流"
     ]
 
     var body: some View {
@@ -95,21 +95,21 @@ struct FocusTakeoverView: View {
     private var centerContent: some View {
         VStack(spacing: 0) {
             // Main Headline
-            Text("Deep Work Session")
+            Text("深度专注时段")
                 .font(.system(size: 34, weight: .bold, design: .default))
                 .foregroundStyle(.white)
                 .tracking(-0.4)
 
             // Blocked Site Subtitle
             HStack(spacing: 4) {
-                Text("Access to")
+                Text("当前网站")
                     .foregroundStyle(.white.opacity(0.6))
 
-                Text(site.isEmpty ? "Distraction" : site)
+                Text(site.isEmpty ? "干扰内容" : site)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
 
-                Text("is blocked")
+                Text("已被屏蔽")
                     .foregroundStyle(.white.opacity(0.6))
             }
             .font(.system(size: 16, weight: .regular))
@@ -124,7 +124,7 @@ struct FocusTakeoverView: View {
                 .padding(.top, 24)
 
             // Mode indicator
-            Text("remaining in \(timer.currentMode.title)")
+            Text("\(timer.currentMode.title)剩余时间")
                 .font(.system(size: 16, weight: .regular))
                 .foregroundStyle(.white.opacity(0.6))
                 .padding(.top, 4)
@@ -157,7 +157,7 @@ struct FocusTakeoverView: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
 
-                    Text("Close Tab & Return to Focus")
+                    Text("关闭标签页，继续专注")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
 
@@ -183,7 +183,7 @@ struct FocusTakeoverView: View {
             }
             .buttonStyle(TactileAppleButtonStyle())
 
-            Text("Press ⌘W or click to close tab")
+            Text("按 ⌘W 或点击关闭标签页")
                 .font(.system(size: 11.5, weight: .regular))
                 .foregroundStyle(.white.opacity(0.45))
         }

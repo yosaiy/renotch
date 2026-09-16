@@ -42,7 +42,7 @@ struct SmokeTests {
         expect(settings.resolvedCompactContent == .music, "music is the default compact content")
         expect(CompactNotchContent.calendar.section == .calendar, "calendar compact destination")
         expect(CompactNotchContent.todo.section == .todo, "todo compact destination")
-        expect(CompactNotchContent.todo.title == "To-Do List", "todo compact title")
+        expect(CompactNotchContent.todo.title == "待办清单", "todo compact title")
         expect(
             NotchSettings.compactWidthRange == NotchSettings.expandedWidthRange,
             "compact and expanded width ranges match"
@@ -358,9 +358,9 @@ struct SmokeTests {
             completions: [],
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         )
-        expect(codingGlance?.title == "Coding active", "combined coding glance title")
-        expect(codingGlance?.subtitle.contains("1 server") == true, "coding glance includes server count")
-        expect(codingGlance?.subtitle.contains("1 Docker container") == true, "coding glance includes Docker count")
+        expect(codingGlance?.title == "开发任务进行中", "combined coding glance title")
+        expect(codingGlance?.subtitle.contains("1 个服务") == true, "coding glance includes server count")
+        expect(codingGlance?.subtitle.contains("1 个 Docker 容器") == true, "coding glance includes Docker count")
         expect(
             DeveloperActivityGlanceResolver.resolve(
                 previousActivities: [glanceServer, glanceDocker],
@@ -457,6 +457,8 @@ struct SmokeTests {
         persisted.notchAppearance = .liquidGlass
         persisted.glassBlurRadius = 24
         persisted.compactContent = .servers
+        persisted.followForegroundWindow = true
+        persisted.codexShowUsage = false
         persisted.compactCornerRadius = 24
         persisted.compactContentBottomPadding = 6
         persisted.compactContentLeadingPadding = 48
@@ -465,6 +467,8 @@ struct SmokeTests {
         expect(store.load().resolvedAppearance == .liquidGlass, "appearance persistence")
         expect(store.load().resolvedGlassBlurRadius == 24, "glass blur persistence")
         expect(store.load().resolvedCompactContent == .servers, "compact content persistence")
+        expect(store.load().followForegroundWindow == true, "foreground display mode persistence")
+        expect(store.load().codexShowUsage == false, "usage visibility persistence")
         expect(store.load().resolvedCompactCornerRadius == 24, "compact corner radius persistence")
         expect(store.load().resolvedCompactContentLeadingPadding == 48, "compact content leading padding persistence")
         expect(store.load().resolvedCompactContentBottomPadding == 6, "compact content bottom padding persistence")
@@ -474,6 +478,11 @@ struct SmokeTests {
             with: JSONEncoder().encode(NotchSettings.default)
         ) as? [String: Any] ?? [:]
         legacyJSON.removeValue(forKey: "notchAppearance")
+        legacyJSON.removeValue(forKey: "codexEnabled")
+        legacyJSON.removeValue(forKey: "codexShowQuestions")
+        legacyJSON.removeValue(forKey: "codexShowUsage")
+        legacyJSON.removeValue(forKey: "followForegroundWindow")
+        legacyJSON.removeValue(forKey: "codexCompletionSeconds")
         legacyJSON.removeValue(forKey: "glassBlurRadius")
         legacyJSON.removeValue(forKey: "compactContent")
         legacyJSON.removeValue(forKey: "compactCornerRadius")
@@ -490,6 +499,10 @@ struct SmokeTests {
             from: JSONSerialization.data(withJSONObject: legacyJSON)
         )
         expect(settingsWithoutAppearance.resolvedAppearance == .black, "legacy appearance default")
+        expect(settingsWithoutAppearance.codexEnabled != false, "Codex enabled for legacy settings")
+        expect(settingsWithoutAppearance.codexShowUsage != false, "usage enabled for legacy settings")
+        expect(settingsWithoutAppearance.followForegroundWindow != true, "legacy display mode stays fixed")
+        expect((settingsWithoutAppearance.codexCompletionSeconds ?? 120) == 120, "Codex legacy retention fallback")
         expect(settingsWithoutAppearance.resolvedGlassBlurRadius == 16, "legacy glass blur default")
         expect(settingsWithoutAppearance.resolvedCompactContent == .music, "legacy compact content default")
         expect(settingsWithoutAppearance.resolvedCompactCornerRadius == 11, "legacy compact corner radius default")
