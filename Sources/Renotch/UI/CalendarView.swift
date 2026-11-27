@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @ObservedObject var service: AppleCalendarService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var displayedMonth = Date()
     @State private var selectedDate = Date()
@@ -15,8 +16,13 @@ struct CalendarView: View {
             case .notDetermined:
                 permissionState
             case .requesting:
-                ProgressView("Connecting to Apple Calendar…")
-                    .controlSize(.small)
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Connecting to Apple Calendar…")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.notchMuted)
+                }
             case .denied, .restricted:
                 deniedState
             case .authorized:
@@ -24,7 +30,7 @@ struct CalendarView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 8)
+        .padding(.top, 4)
         .onAppear {
             service.refresh()
             loadMonthEvents()
@@ -35,34 +41,34 @@ struct CalendarView: View {
     }
 
     private var permissionState: some View {
-        CalendarMessageCard(
+        CalendarPromptView(
             icon: "calendar.badge.plus",
             title: "Connect Apple Calendar",
-            message: "Show your calendar and events already synced on this Mac.",
+            message: "Display your local macOS calendars and upcoming schedule here.",
             actionTitle: "Allow Access",
             action: service.requestAccess
         )
     }
 
     private var deniedState: some View {
-        CalendarMessageCard(
+        CalendarPromptView(
             icon: "calendar.badge.exclamationmark",
             title: "Calendar access is off",
-            message: "Enable Calendar access in System Settings to show your dates and events.",
+            message: "Enable Calendar access for Re:notch in System Settings to view your schedule.",
             actionTitle: "Open Settings",
             action: service.openCalendarPrivacySettings
         )
     }
 
     private var calendarContent: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             monthView
-                .frame(minWidth: 190, idealWidth: 258, maxWidth: 268)
+                .frame(minWidth: 186, idealWidth: 238, maxWidth: 252)
 
             Rectangle()
                 .fill(Color.white.opacity(0.08))
                 .frame(width: 1)
-                .padding(.vertical, 3)
+                .padding(.vertical, 2)
 
             agendaView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,42 +76,38 @@ struct CalendarView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Month panel
+    // MARK: - Month Panel (Open Obsidian Ground)
 
-    /// Fills whatever height the notch surface gives it: header and weekday
-    /// rows stay fixed while the day grid absorbs the remaining space, so the
-    /// calendar is never taller than its container.
     private var monthView: some View {
         VStack(spacing: 4) {
             monthHeader
                 .frame(height: 20)
             weekdayHeader
-                .frame(height: 10)
+                .frame(height: 11)
             dayGrid
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(9)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.045))
-        )
     }
 
     private var monthHeader: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Text(monthName)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .accessibilityAddTraits(.isHeader)
-            Text(monthYear)
-                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.notchMuted)
+        HStack(alignment: .center, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(monthName)
+                    .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .accessibilityAddTraits(.isHeader)
+                Text(monthYear)
+                    .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.notchMuted)
+            }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             Button("Today") { showToday() }
-                .font(.system(size: 8.5, weight: .semibold))
-                .buttonStyle(.borderless)
+                .font(.system(size: 9, weight: .semibold))
+                .buttonStyle(.plain)
                 .foregroundStyle(Color.notchAccent)
                 .help("Jump to today")
                 .accessibilityLabel("Jump to today")
@@ -122,8 +124,8 @@ struct CalendarView: View {
     private var weekdayHeader: some View {
         HStack(spacing: 2) {
             ForEach(weekdaySymbols, id: \.self) { symbol in
-                Text(symbol.uppercased())
-                    .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                Text(symbol)
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(Color.notchMuted)
                     .frame(maxWidth: .infinity)
             }
@@ -131,10 +133,8 @@ struct CalendarView: View {
         .accessibilityHidden(true)
     }
 
-    /// Six evenly distributed rows instead of a fixed-height LazyVGrid, so the
-    /// grid stretches or shrinks with the notch height without clipping.
     private var dayGrid: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 1.5) {
             ForEach(0..<6, id: \.self) { row in
                 HStack(spacing: 2) {
                     ForEach(0..<7, id: \.self) { column in
@@ -156,22 +156,32 @@ struct CalendarView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .animation(.easeOut(duration: 0.15), value: selectedDate)
-        .animation(.easeOut(duration: 0.15), value: displayedMonth)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: selectedDate)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: displayedMonth)
     }
 
-    // MARK: - Agenda panel
+    // MARK: - Agenda Panel
 
     private var agendaView: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 0) {
             agendaHeader
+                .padding(.bottom, 6)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
 
             if selectedDayEvents.isEmpty {
                 emptyDayState
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 5) {
-                        ForEach(selectedDayEvents) { event in
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(selectedDayEvents.enumerated()), id: \.element.id) { index, event in
+                            if index > 0 {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.06))
+                                    .frame(height: 1)
+                            }
                             CalendarAgendaRow(event: event)
                         }
                     }
@@ -182,19 +192,18 @@ struct CalendarView: View {
     }
 
     private var agendaHeader: some View {
-        HStack(spacing: 9) {
-            dateBlock
-
+        HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(selectedDate.formatted(.dateTime.weekday(.wide)))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                 Text(agendaSubtitle)
-                    .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                    .font(.system(size: 9.5, weight: .medium))
                     .foregroundStyle(Color.notchMuted)
                     .lineLimit(1)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             CalendarIconButton(icon: "arrow.clockwise", label: "Refresh events") {
                 service.refresh()
@@ -204,51 +213,25 @@ struct CalendarView: View {
                 service.openCalendar()
             }
         }
-        .font(.system(size: 10, weight: .semibold))
         .accessibilityElement(children: .contain)
     }
 
-    /// Mini calendar tile for the selected day: weekday abbreviation stacked
-    /// over a large day number, mirroring the macOS Calendar date badge.
-    private var dateBlock: some View {
-        VStack(spacing: 0) {
-            Text(selectedDate.formatted(.dateTime.weekday(.abbreviated)).uppercased())
-                .font(.system(size: 6.5, weight: .bold, design: .monospaced))
-                .tracking(0.5)
-                .foregroundStyle(Color.notchAccent)
-            Text(selectedDate.formatted(.dateTime.day()))
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-        }
-        .frame(width: 32, height: 32)
-        .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Color.notchAccent.opacity(0.12))
-        )
-        .accessibilityHidden(true)
-    }
-
     private var emptyDayState: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                Circle()
-                    .fill(Color.notchAccent.opacity(0.1))
-                    .frame(width: 40, height: 40)
-                Image(systemName: "calendar.badge.checkmark")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(Color.notchAccent)
-            }
+        VStack(alignment: .leading, spacing: 3) {
+            Spacer()
             Text("No events on this day")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.85))
-            Text("Nothing scheduled — enjoy the free time.")
-                .font(.system(size: 8.5, weight: .medium))
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.88))
+            Text("Open Apple Calendar to schedule something.")
+                .font(.system(size: 9.5, weight: .regular))
                 .foregroundStyle(Color.notchMuted)
+            Spacer()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: - Derived values
+    // MARK: - Derived Values
 
     private var startOfDisplayedMonth: Date {
         let components = calendar.dateComponents([.year, .month], from: displayedMonth)
@@ -267,7 +250,7 @@ struct CalendarView: View {
         let base = selectedDate.formatted(.dateTime.month(.wide).day())
         let count = selectedDayEvents.count
         guard count > 0 else { return base }
-        return "\(base) · \(count) event\(count == 1 ? "" : "s")"
+        return "\(base) · \(count) \(count == 1 ? "event" : "events")"
     }
 
     private var weekdaySymbols: [String] {
@@ -335,7 +318,7 @@ struct CalendarView: View {
     }
 }
 
-// MARK: - Day button
+// MARK: - Day Button
 
 private struct CalendarDayButton: View {
     let date: Date
@@ -357,7 +340,7 @@ private struct CalendarDayButton: View {
                     .stroke(ringColor, lineWidth: 1)
 
                 Text(date.formatted(.dateTime.day()))
-                    .font(.system(size: 9, weight: isSelected || isToday ? .bold : .medium, design: .rounded))
+                    .font(.system(size: 9.5, weight: isSelected || isToday ? .bold : .medium, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(textColor)
 
@@ -365,9 +348,9 @@ private struct CalendarDayButton: View {
                     VStack {
                         Spacer()
                         Circle()
-                            .fill(isSelected ? Color.black.opacity(0.7) : Color.notchAccent)
+                            .fill(isSelected ? Color.black.opacity(0.75) : Color.notchAccent)
                             .frame(width: 2.5, height: 2.5)
-                            .padding(.bottom, 1.5)
+                            .padding(.bottom, 1)
                     }
                 }
             }
@@ -384,7 +367,7 @@ private struct CalendarDayButton: View {
 
     private var fillColor: Color {
         if isSelected { return Color.notchAccent }
-        if isHovering { return Color.white.opacity(0.08) }
+        if isHovering { return Color.white.opacity(0.09) }
         return Color.clear
     }
 
@@ -403,13 +386,13 @@ private struct CalendarDayButton: View {
         var parts = [date.formatted(.dateTime.weekday(.wide).month(.wide).day())]
         if isToday { parts.append("today") }
         if hasEvents {
-            parts.append("\(eventCount) event\(eventCount == 1 ? "" : "s")")
+            parts.append("\(eventCount) \(eventCount == 1 ? "event" : "events")")
         }
         return parts.joined(separator: ", ")
     }
 }
 
-// MARK: - Icon button with hover state
+// MARK: - Icon Button
 
 private struct CalendarIconButton: View {
     let icon: String
@@ -421,13 +404,16 @@ private struct CalendarIconButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(isHovering ? Color.white.opacity(0.92) : Color.white.opacity(0.6))
-                .frame(width: 16, height: 16)
-                .background(Circle().fill(Color.white.opacity(isHovering ? 0.1 : 0.06)))
-                .contentShape(Circle())
+                .font(.system(size: 8.5, weight: .bold))
+                .foregroundStyle(isHovering ? .white : Color.notchMuted)
+                .frame(width: 19, height: 19)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Color.white.opacity(isHovering ? 0.12 : 0.06))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NotchPressButtonStyle())
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovering)
         .help(label)
@@ -435,49 +421,42 @@ private struct CalendarIconButton: View {
     }
 }
 
-// MARK: - Agenda row
+// MARK: - Editorial Agenda Row (Clean Time Column, No Decorative Color Stripe)
 
 private struct CalendarAgendaRow: View {
     let event: CalendarEventItem
-
     @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color(red: 1, green: 0.42, blue: 0.38))
-                .frame(width: 3)
-                .padding(.vertical, 7)
+        HStack(alignment: .center, spacing: 10) {
+            Text(event.shortTime)
+                .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(event.isAllDay ? Color.notchAccent : Color.notchMuted)
+                .frame(width: 44, alignment: .leading)
+                .lineLimit(1)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1.5) {
                 Text(event.title)
-                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
+
                 Text(event.calendarTitle)
-                    .font(.system(size: 8))
+                    .font(.system(size: 9, weight: .regular))
                     .foregroundStyle(Color.notchMuted)
                     .lineLimit(1)
             }
-
-            Spacer(minLength: 4)
-
-            Text(event.shortTime)
-                .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                .foregroundStyle(event.isAllDay ? Color.notchAccent : Color.white.opacity(0.7))
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Capsule().fill(Color.white.opacity(0.06)))
-                .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 8)
-        .frame(height: 36)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
         .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Color.white.opacity(isHovering ? 0.08 : 0.05))
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(Color.white.opacity(isHovering ? 0.055 : 0.0))
         )
-        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .contentShape(Rectangle())
         .onHover { isHovering = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovering)
         .accessibilityElement(children: .combine)
@@ -490,39 +469,61 @@ private struct CalendarAgendaRow: View {
     }
 }
 
-// MARK: - Message card
+// MARK: - Permission / Denied Prompt
 
-private struct CalendarMessageCard: View {
+private struct CalendarPromptView: View {
     let icon: String
     let title: String
     let message: String
     let actionTitle: String
     let action: () -> Void
+    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: icon)
-                .font(.system(size: 24, weight: .medium))
-                .foregroundStyle(Color.notchAccent)
-                .frame(width: 54, height: 54)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.notchAccent.opacity(0.1)))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                Text(message)
-                    .font(.system(size: 9.5))
-                    .foregroundStyle(Color.notchMuted)
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.notchAccent.opacity(0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.notchAccent.opacity(0.24), lineWidth: 0.8)
+                    )
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Color.notchAccent)
             }
-            Spacer()
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
-                .tint(Color.notchAccent)
-                .foregroundStyle(.black)
-                .controlSize(.small)
+            .frame(width: 44, height: 44)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                Text(message)
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundStyle(Color.notchMuted)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 8)
+
+            Button(action: action) {
+                Text(actionTitle)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 12)
+                    .frame(height: 28)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Color.notchAccent.opacity(isHovered ? 1.0 : 0.92))
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            }
+            .buttonStyle(NotchPressButtonStyle())
+            .onHover { isHovered = $0 }
+            .animation(.easeOut(duration: 0.14), value: isHovered)
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 15).fill(Color.white.opacity(0.045)))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
     }
 }

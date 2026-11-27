@@ -33,20 +33,9 @@ struct CompactServerView: View {
 
             HStack(spacing: 5) {
                 ActivityStateDot(state: activity.state)
-                if service.isRefreshing {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 8, weight: .semibold))
-                        .foregroundStyle(Color.notchMuted)
-                        .rotationEffect(.degrees(360))
-                        .animation(
-                            .linear(duration: 1).repeatForever(autoreverses: false),
-                            value: service.isRefreshing
-                        )
-                } else {
-                    Text(activity.state.compactLabel)
-                        .font(.system(size: 8, weight: .semibold, design: .rounded))
-                        .foregroundStyle(activity.state.tint)
-                }
+                Text(service.isRefreshing ? "SYNC" : activity.state.compactLabel)
+                    .font(.system(size: 8, weight: .semibold, design: .rounded))
+                    .foregroundStyle(service.isRefreshing ? Color.notchMuted : activity.state.tint)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -3,6 +3,8 @@ import SwiftUI
 struct ExpandedNotchView: View {
     @EnvironmentObject private var model: AppModel
     @ObservedObject var timer: TimerService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isCollapseHovered = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,9 +15,10 @@ struct ExpandedNotchView: View {
 
                 Divider()
                     .overlay(Color.white.opacity(0.08))
-                    .padding(.top, 6)
+                    .padding(.top, 8)
 
                 visibleContent
+                .padding(.top, 4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .transition(.opacity)
                 .animation(.easeOut(duration: 0.16), value: model.selectedSection)
@@ -25,16 +28,16 @@ struct ExpandedNotchView: View {
                 if model.settings.resolvedHeaderNavigationStyle == .bottomDock {
                     Divider()
                         .overlay(Color.white.opacity(0.08))
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 6)
 
                     bottomDockView
                 }
             }
         }
-        .padding(.leading, model.settings.resolvedExpandedContentLeadingPadding)
-        .padding(.trailing, model.settings.resolvedExpandedContentTrailingPadding)
-        .padding(.top, model.settings.resolvedExpandedContentTopPadding)
-        .padding(.bottom, model.settings.resolvedExpandedContentBottomPadding)
+        .padding(.leading, model.settings.resolvedExpandedContentLeadingPadding + 14)
+        .padding(.trailing, model.settings.resolvedExpandedContentTrailingPadding + 14)
+        .padding(.top, model.settings.resolvedExpandedContentTopPadding + 4)
+        .padding(.bottom, model.settings.resolvedExpandedContentBottomPadding + 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -67,6 +70,8 @@ struct ExpandedNotchView: View {
             }
         case .timer:
             TimerView(timer: timer)
+        case .blocker:
+            FocusBlockerView(blocker: model.focusBlocker, timer: timer)
         case .calendar:
             CalendarView(service: model.calendar)
         case .shelf:
@@ -109,6 +114,11 @@ struct ExpandedNotchView: View {
                         isSelected: isSelected(.timer)
                     ) { select(.timer) }
                     SectionButton(
+                        title: "Blocker",
+                        icon: "shield.lefthalf.filled",
+                        isSelected: isSelected(.blocker)
+                    ) { select(.blocker) }
+                    SectionButton(
                         title: "Todos",
                         icon: "checklist",
                         isSelected: isSelected(.todo)
@@ -145,17 +155,22 @@ struct ExpandedNotchView: View {
             }
 
             Button {
-                withAnimation(DynamicNotchSprings.fluidCollapse) {
+                withAnimation(reduceMotion ? nil : DynamicNotchSprings.fluidCollapse) {
                     model.collapse(force: true)
                 }
             } label: {
                 Image(systemName: "chevron.up")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isCollapseHovered ? .white : Color.notchMuted)
                     .frame(width: 25, height: 25)
-                    .background(Circle().fill(Color.white.opacity(0.07)))
+                    .background(Circle().fill(Color.white.opacity(isCollapseHovered ? 0.14 : 0.07)))
+                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(NotchPressButtonStyle())
+            .onHover { isCollapseHovered = $0 }
+            .animation(.easeOut(duration: 0.14), value: isCollapseHovered)
+            .help("Collapse notch")
+            .accessibilityLabel("Collapse notch")
             .fixedSize()
         }
     }
@@ -182,6 +197,11 @@ struct ExpandedNotchView: View {
                 icon: "timer",
                 isSelected: isSelected(.timer)
             ) { select(.timer) }
+            SectionButton(
+                title: "Blocker",
+                icon: "shield.lefthalf.filled",
+                isSelected: isSelected(.blocker)
+            ) { select(.blocker) }
             SectionButton(
                 title: "Todos",
                 icon: "checklist",

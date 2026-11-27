@@ -5,113 +5,146 @@ import SwiftUI
 struct FileShelfView: View {
     @EnvironmentObject private var model: AppModel
     @ObservedObject var shelf: ShelfStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isClearHovered = false
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             header
+                .padding(.bottom, 6)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
 
             if shelf.items.isEmpty {
                 emptyShelf
+                    .padding(.top, 8)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         ForEach(shelf.items) { item in
-                            ShelfItemView(item: item) {
+                            ShelfItemCard(item: item) {
                                 model.removeShelfItem(item)
                             }
-                            .transition(.scale(scale: 0.84).combined(with: .opacity))
+                            .transition(reduceMotion ? .opacity : .scale(scale: 0.92).combined(with: .opacity))
                         }
                     }
+                    .padding(.vertical, 8)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.spring(response: 0.3, dampingFraction: 0.82), value: shelf.items)
+        .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.84), value: shelf.items)
     }
 
-    private var header: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "tray.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.notchAccent)
+    // MARK: - Header
 
+    private var header: some View {
+        HStack(spacing: 8) {
             Text("File Shelf")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.white)
 
-            Text(model.transientMessage ?? "\(shelf.items.count) / \(shelf.maxItems)")
-                .font(.system(size: 10, weight: .medium))
+            Text(model.transientMessage ?? "\(shelf.items.count) of \(shelf.maxItems)")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .monospacedDigit()
                 .foregroundStyle(model.transientMessage == nil ? Color.notchMuted : Color.notchAccent)
                 .lineLimit(1)
 
             Spacer(minLength: 4)
 
-            shelfButton(title: "Clear", icon: "trash") {
+            Button {
                 model.clearShelf()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 9, weight: .semibold))
+                    Text("Clear")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(
+                    shelf.items.isEmpty
+                        ? Color.white.opacity(0.28)
+                        : (isClearHovered ? Color.notchDanger : Color.notchMuted)
+                )
+                .padding(.horizontal, 7)
+                .frame(height: 22)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(
+                            !shelf.items.isEmpty && isClearHovered
+                                ? Color.notchDanger.opacity(0.14)
+                                : Color.white.opacity(shelf.items.isEmpty ? 0.03 : 0.06)
+                        )
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
+            .buttonStyle(NotchPressButtonStyle())
+            .onHover { isClearHovered = $0 }
             .disabled(shelf.items.isEmpty)
+            .help("Remove all pinned files")
+            .accessibilityLabel("Clear file shelf")
         }
-        .padding(.bottom, 2)
     }
+
+    // MARK: - Asymmetric Empty Drop Zone
 
     private var emptyShelf: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.notchAccent.opacity(0.14))
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.notchAccent.opacity(0.12))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.notchAccent.opacity(0.35), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.notchAccent.opacity(0.26), lineWidth: 0.8)
                     )
-                    .frame(width: 48, height: 48)
-
-                Image(systemName: "tray")
-                    .font(.system(size: 22, weight: .medium))
+                Image(systemName: "tray.and.arrow.down")
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Color.notchAccent)
             }
+            .frame(width: 44, height: 44)
+            .accessibilityHidden(true)
 
-            VStack(spacing: 4) {
-                Text("Shelf is empty")
-                    .font(.system(size: 15, weight: .bold))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Drop files onto the notch")
+                    .font(.system(size: 13.5, weight: .semibold))
                     .foregroundStyle(.white)
 
-                Text("Drag files onto the notch to add them")
-                    .font(.system(size: 11.5, weight: .regular))
+                Text("Files are pinned by reference for quick drag-out and are never duplicated.")
+                    .font(.system(size: 10, weight: .regular))
                     .foregroundStyle(Color.notchMuted)
+                    .lineLimit(2)
             }
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                .foregroundStyle(Color.white.opacity(0.12))
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    Color.white.opacity(0.12),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 4])
+                )
         )
-    }
-
-    private func shelfButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: icon)
-                .labelStyle(.iconOnly)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.white.opacity(0.07)))
-        }
-        .buttonStyle(.plain)
-        .help(title)
     }
 }
 
-private struct ShelfItemView: View {
+// MARK: - Shelf Item Tile
+
+private struct ShelfItemCard: View {
     let item: ShelfItem
     let remove: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
-        VStack(spacing: 3) {
+        HStack(spacing: 9) {
             ZStack(alignment: .topTrailing) {
                 ShelfThumbnailView(item: item)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 34, height: 34)
                     .opacity(item.isAvailable ? 1 : 0.38)
 
                 if !item.isAvailable {
@@ -123,19 +156,50 @@ private struct ShelfItemView: View {
                 }
             }
 
-            Text(item.displayName)
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundStyle(item.isAvailable ? .white : .secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(width: 76)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.displayName)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(item.isAvailable ? .white : Color.notchMuted)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+
+                if isHovering {
+                    HStack(spacing: 4) {
+                        if item.isAvailable {
+                            ShelfInlineAction(icon: "arrow.up.right", label: "Open \(item.displayName)") {
+                                NSWorkspace.shared.open(item.url)
+                            }
+                            ShelfInlineAction(icon: "folder", label: "Reveal \(item.displayName) in Finder") {
+                                NSWorkspace.shared.activateFileViewerSelecting([item.url])
+                            }
+                        }
+                        ShelfInlineAction(icon: "xmark", label: "Remove \(item.displayName)", tint: Color.notchDanger) {
+                            remove()
+                        }
+                    }
+                } else {
+                    Text(fileSubtitle)
+                        .font(.system(size: 9, weight: .regular, design: .monospaced))
+                        .foregroundStyle(Color.notchMuted)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(4)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .frame(width: 156, height: 56)
         .background(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.white.opacity(0.055))
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.white.opacity(isHovering ? 0.085 : 0.045))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(Color.white.opacity(isHovering ? 0.14 : 0.07), lineWidth: 0.7)
+                )
         )
-        .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: isHovering)
         .onDrag {
             guard item.isAvailable else { return NSItemProvider() }
             return NSItemProvider(contentsOf: item.url) ?? NSItemProvider()
@@ -159,9 +223,39 @@ private struct ShelfItemView: View {
             Button("Remove", role: .destructive, action: remove)
         }
         .help(item.isAvailable ? item.url.path : "File is no longer available")
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(item.displayName)
         .accessibilityValue(item.isAvailable ? "Available" : "File is no longer available")
+    }
+
+    private var fileSubtitle: String {
+        guard item.isAvailable else { return "Missing" }
+        let ext = item.url.pathExtension.uppercased()
+        return ext.isEmpty ? "File" : ext
+    }
+}
+
+private struct ShelfInlineAction: View {
+    let icon: String
+    let label: String
+    var tint: Color = .white
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 8.5, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 18, height: 18)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color.white.opacity(0.09))
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        }
+        .buttonStyle(NotchPressButtonStyle())
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
 

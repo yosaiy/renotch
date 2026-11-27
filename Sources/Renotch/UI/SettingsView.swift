@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 private enum GlassMaterialLevel: Double, CaseIterable, Identifiable {
@@ -35,18 +36,9 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .general: return "switch.2"
-        case .appearance: return "sparkles"
+        case .appearance: return "circle.lefthalf.filled"
         case .blocker: return "shield.lefthalf.filled"
         case .privacy: return "hand.raised.fill"
-        }
-    }
-
-    var subtitle: String {
-        switch self {
-        case .general: return "Behavior, display target & timing"
-        case .appearance: return "Notch style, sizing & padding"
-        case .blocker: return "Distraction blocker & screen takeover"
-        case .privacy: return "Notifications & permissions"
         }
     }
 }
@@ -54,69 +46,76 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var screenManager: ScreenManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var selectedTab: SettingsTab = .general
     @State private var newRuleInput = ""
+    @State private var showPaddingControls = false
+    @State private var isRestoreHovered = false
+
+    private let quickPresets = [
+        "youtube.com",
+        "threads.net",
+        "instagram.com",
+        "x.com",
+        "tiktok.com",
+        "reddit.com",
+        "netflix.com"
+    ]
 
     var body: some View {
         HStack(spacing: 0) {
             sidebarView
-                .frame(width: 200)
+                .frame(width: 184)
                 .background(
                     ZStack {
                         VisualEffectBlur(material: .sidebar, blendingMode: .behindWindow)
-                        Color.black.opacity(0.2)
+                        Color.black.opacity(0.24)
                     }
                 )
 
-            Divider()
-                .opacity(0.15)
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 1)
 
             detailContentView
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    ZStack {
-                        Color(nsColor: .windowBackgroundColor).opacity(0.85)
-                        VisualEffectBlur(material: .underWindowBackground, blendingMode: .behindWindow)
-                    }
-                )
+                .background(Color(red: 0.08, green: 0.08, blue: 0.09))
         }
-        .frame(minWidth: 760, idealWidth: 960, maxWidth: .infinity, minHeight: 500, idealHeight: 640, maxHeight: .infinity)
+        .frame(minWidth: 660, idealWidth: 760, maxWidth: .infinity, minHeight: 460, idealHeight: 540, maxHeight: .infinity)
         .preferredColorScheme(.dark)
+        .onAppear {
+            model.focusBlocker.checkAccessibilityStatus()
+        }
     }
 
     // MARK: - Sidebar
 
     private var sidebarView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // App Header Branding
-            HStack(spacing: 10) {
-                appIconView(size: 32)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 9) {
+                appIconView(size: 28)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Re:notch")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(.white)
 
-                    Text("Preferences")
+                    Text("Settings")
                         .font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.notchMuted)
                 }
             }
             .padding(.horizontal, 14)
             .padding(.top, 16)
 
-            Divider()
-                .opacity(0.12)
-                .padding(.horizontal, 10)
-
-            // Sidebar Tabs
-            VStack(spacing: 4) {
+            VStack(spacing: 2) {
                 ForEach(SettingsTab.allCases) { tab in
                     SidebarTabButton(
                         tab: tab,
                         isSelected: selectedTab == tab
                     ) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) {
                             selectedTab = tab
                         }
                     }
@@ -126,38 +125,40 @@ struct SettingsView: View {
 
             Spacer()
 
-            // Footer info / Restore Defaults button
             VStack(alignment: .leading, spacing: 8) {
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
                         model.resetSettings()
                     }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 10.5, weight: .medium))
                         Text("Restore Defaults")
                             .font(.system(size: 11, weight: .medium))
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isRestoreHovered ? .white : Color.notchMuted)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
+                    .frame(height: 26)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(Color.white.opacity(0.04))
+                            .fill(Color.white.opacity(isRestoreHovered ? 0.1 : 0.045))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                            .stroke(Color.white.opacity(isRestoreHovered ? 0.14 : 0.08), lineWidth: 0.6)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(NotchPressButtonStyle())
+                .onHover { isRestoreHovered = $0 }
+                .animation(.easeOut(duration: 0.12), value: isRestoreHovered)
 
                 if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
                     Text("Version \(version)")
                         .font(.system(size: 10, weight: .regular))
-                        .foregroundStyle(.tertiary)
-                        .padding(.leading, 4)
+                        .foregroundStyle(Color.notchMuted)
+                        .padding(.leading, 2)
                 }
             }
             .padding(.horizontal, 14)
@@ -165,22 +166,14 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Detail Content Canvas
+    // MARK: - Detail Canvas
 
     private var detailContentView: some View {
         ScrollView(.vertical, showsIndicators: true) {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header Title
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(selectedTab.rawValue)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary)
-
-                    Text(selectedTab.subtitle)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.bottom, 4)
+            VStack(alignment: .leading, spacing: 18) {
+                Text(selectedTab.rawValue)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
 
                 switch selectedTab {
                 case .general:
@@ -193,750 +186,546 @@ struct SettingsView: View {
                     privacyTabContent
                 }
             }
-            .padding(24)
+            .padding(22)
         }
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
     }
 
-    // MARK: - General Tab Content
+    // MARK: - General Tab (Simplified)
 
     private var generalTabContent: some View {
-        VStack(spacing: 16) {
-            // Behavior Card
-            SettingCard(title: "Behavior", icon: "gearshape.fill", iconColor: .blue) {
-                VStack(spacing: 0) {
-                    SettingRow(
-                        title: "Show Re:notch",
-                        subtitle: "Enable or hide the notch interface"
-                    ) {
-                        Toggle("", isOn: visibilityBinding)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Launch at login",
-                        subtitle: "Automatically start Re:notch on startup"
-                    ) {
-                        Toggle("", isOn: $model.settings.launchAtLogin)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Default compact view",
-                        subtitle: "Choose default widget for compact notch"
-                    ) {
-                        Picker("", selection: compactContentBinding) {
-                            ForEach(CompactNotchContent.allCases) { content in
-                                Text(content.title).tag(content)
-                            }
+        VStack(alignment: .leading, spacing: 16) {
+            SettingSection("Startup & Display") {
+                SettingToggleRow("Show Re:notch", isOn: visibilityBinding)
+                sectionDivider
+                SettingToggleRow("Launch at login", isOn: $model.settings.launchAtLogin)
+                sectionDivider
+                SettingRow("Default compact view") {
+                    Picker("", selection: compactContentBinding) {
+                        ForEach(CompactNotchContent.allCases) { content in
+                            Text(content.title).tag(content)
                         }
-                        .pickerStyle(.menu)
-                        .frame(width: 140)
                     }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Enlarge on hover",
-                        subtitle: "Smoothly enlarge compact notch when mouse hovers over it"
-                    ) {
-                        Toggle("", isOn: $model.settings.expandOnHover)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 148)
+                }
+                sectionDivider
+                SettingRow("Target monitor") {
+                    Picker("", selection: $model.settings.targetDisplayID) {
+                        Text("Main display").tag(nil as UInt32?)
+                        ForEach(screenManager.displays) { display in
+                            Text(display.name).tag(Optional(display.id))
+                        }
                     }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Expand on click",
-                        subtitle: "Expand notch on mouse click"
-                    ) {
-                        Toggle("", isOn: $model.settings.expandOnClick)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Always on top",
-                        subtitle: "Keep notch window floating above regular app windows"
-                    ) {
-                        Toggle("", isOn: $model.settings.alwaysOnTop)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 8)
-
-                    SettingRow(
-                        title: "Show over full-screen apps",
-                        subtitle: "Maintain visibility even in full-screen space"
-                    ) {
-                        Toggle("", isOn: $model.settings.showOnFullscreen)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 148)
                 }
             }
 
-            // Display Card
-            SettingCard(title: "Display & Timing", icon: "display", iconColor: .purple) {
-                VStack(spacing: 0) {
-                    SettingRow(
-                        title: "Target monitor",
-                        subtitle: "Select display to attach the Re:notch overlay"
-                    ) {
-                        Picker("", selection: $model.settings.targetDisplayID) {
-                            Text("Main display").tag(nil as UInt32?)
-                            ForEach(screenManager.displays) { display in
-                                Text(display.name).tag(Optional(display.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .frame(width: 160)
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
+            SettingSection("Behavior & Positioning") {
+                SettingToggleRow("Enlarge on hover", isOn: $model.settings.expandOnHover)
+                sectionDivider
+                SettingToggleRow("Expand on click", isOn: $model.settings.expandOnClick)
+                sectionDivider
+                SettingToggleRow("Always on top", isOn: $model.settings.alwaysOnTop)
+                sectionDivider
+                SettingToggleRow("Show over full-screen apps", isOn: $model.settings.showOnFullscreen)
+                sectionDivider
+                HStack(spacing: 16) {
+                    CompactValueSlider(
                         title: "Collapse delay",
-                        subtitle: "Time before notch shrinks back after pointer leaves",
                         value: $model.settings.collapseDelay,
                         range: 0.3...1.2,
                         suffix: "s",
                         precision: 1
                     )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
+                    CompactValueSlider(
                         title: "Top offset",
-                        subtitle: "Vertical distance from the top edge of screen",
                         value: $model.settings.verticalOffset,
                         range: 0...40,
                         suffix: " pt",
                         precision: 0
                     )
                 }
+                .padding(.top, 2)
             }
 
             if let error = model.settingsError {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.notchDanger)
                     Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Color.notchDanger)
                 }
-                .padding(12)
+                .padding(11)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.red.opacity(0.1))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(Color.red.opacity(0.2), lineWidth: 0.8)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.notchDanger.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.notchDanger.opacity(0.24), lineWidth: 0.8)
+                        )
                 )
             }
         }
     }
 
-    // MARK: - Appearance Tab Content
+    // MARK: - Appearance Tab (Simplified)
 
     private var appearanceTabContent: some View {
-        VStack(spacing: 16) {
-            // Notch Style Card
-            SettingCard(title: "Notch Style", icon: "paintpalette.fill", iconColor: .indigo) {
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Surface Material")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
-
-                        Picker("Surface", selection: appearanceBinding) {
-                            ForEach(NotchAppearance.allCases) { appearance in
-                                Text(appearance.title).tag(appearance)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-
-                    if model.settings.resolvedAppearance == .liquidGlass,
-                       #unavailable(macOS 26.0) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Frosted Material Blur Level")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.secondary)
-
-                            Picker("Frosted blur", selection: glassMaterialBinding) {
-                                ForEach(GlassMaterialLevel.allCases) { level in
-                                    Text(level.title).tag(level)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                    }
-
+        VStack(alignment: .leading, spacing: 16) {
+            SettingSection("Surface") {
+                VStack(alignment: .leading, spacing: 12) {
                     NotchAppearancePreview(
                         appearance: model.settings.resolvedAppearance,
                         blurRadius: model.settings.resolvedGlassBlurRadius,
                         cornerRadius: model.settings.resolvedCompactCornerRadius
                     )
 
-                    Text(appearanceDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineSpacing(2)
-                }
-            }
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.settings.resolvedAppearance)
-
-            // Compact Notch Section Card
-            SettingCard(title: "Compact Notch Dimensions", icon: "rectangle.compress.vertical", iconColor: .cyan) {
-                VStack(spacing: 0) {
-                    SettingRow(
-                        title: "Show song name & artist",
-                        subtitle: "Applies to Music view. When off, only artwork and audio waveform appear."
-                    ) {
-                        Toggle("", isOn: compactTrackInfoBinding)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
+                    SettingRow("Material") {
+                        Picker("", selection: appearanceBinding) {
+                            ForEach(NotchAppearance.allCases) { appearance in
+                                Text(appearance.title).tag(appearance)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 210)
                     }
 
-                    Divider().opacity(0.12).padding(.vertical, 12)
+                    if model.settings.resolvedAppearance == .liquidGlass,
+                       #unavailable(macOS 26.0) {
+                        sectionDivider
+                        SettingRow("Frosted blur") {
+                            Picker("", selection: glassMaterialBinding) {
+                                ForEach(GlassMaterialLevel.allCases) { level in
+                                    Text(level.title).tag(level)
+                                }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.segmented)
+                            .frame(width: 210)
+                        }
+                    }
+                }
+            }
 
-                    AppleValueSlider(
-                        title: "Width",
-                        subtitle: "Compact width of the notch",
-                        value: $model.settings.compactWidth,
-                        range: NotchSettings.compactWidthRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
+            SettingSection("Layout") {
+                SettingToggleRow("Avoid MacBook hardware notch", isOn: avoidHardwareNotchBinding)
+                sectionDivider
+                SettingRow("Navigation bar") {
+                    Picker("", selection: headerNavigationStyleBinding) {
+                        ForEach(HeaderNavigationStyle.allCases) { style in
+                            Text(style.title).tag(style)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 185)
+                }
+                sectionDivider
+                SettingToggleRow("Show track title in compact mode", isOn: compactTrackInfoBinding)
+            }
 
-                    Divider().opacity(0.12).padding(.vertical, 12)
+            SettingSection("Size") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 16) {
+                        CompactValueSlider(
+                            title: "Compact width",
+                            value: $model.settings.compactWidth,
+                            range: NotchSettings.compactWidthRange,
+                            suffix: " pt",
+                            precision: 0
+                        )
+                        CompactValueSlider(
+                            title: "Compact height",
+                            value: $model.settings.compactHeight,
+                            range: NotchSettings.compactHeightRange,
+                            suffix: " pt",
+                            precision: 0
+                        )
+                    }
 
-                    AppleValueSlider(
-                        title: "Height",
-                        subtitle: "Compact height of the notch",
-                        value: $model.settings.compactHeight,
-                        range: NotchSettings.compactHeightRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Corner radius",
-                        subtitle: "Outer bottom corner radius",
+                    CompactValueSlider(
+                        title: "Compact corner radius",
                         value: compactCornerRadiusBinding,
                         range: NotchSettings.compactCornerRadiusRange,
                         suffix: " pt",
                         precision: 0
                     )
 
-                    Group {
-                        Divider().opacity(0.12).padding(.vertical, 12)
+                    sectionDivider
 
-                        AppleValueSlider(
-                            title: "Left padding",
-                            subtitle: "Inner left margin",
-                            value: paddingBinding(
-                                \.compactContentLeadingPadding,
-                                resolved: \.resolvedCompactContentLeadingPadding
-                            ),
-                            range: NotchSettings.compactContentHorizontalPaddingRange,
+                    HStack(spacing: 16) {
+                        CompactValueSlider(
+                            title: "Expanded width",
+                            value: $model.settings.expandedWidth,
+                            range: NotchSettings.expandedWidthRange,
                             suffix: " pt",
                             precision: 0
                         )
-
-                        Divider().opacity(0.12).padding(.vertical, 12)
-
-                        AppleValueSlider(
-                            title: "Right padding",
-                            subtitle: "Inner right margin",
-                            value: paddingBinding(
-                                \.compactContentTrailingPadding,
-                                resolved: \.resolvedCompactContentTrailingPadding
-                            ),
-                            range: NotchSettings.compactContentHorizontalPaddingRange,
-                            suffix: " pt",
-                            precision: 0
-                        )
-
-                        Divider().opacity(0.12).padding(.vertical, 12)
-
-                        AppleValueSlider(
-                            title: "Top padding",
-                            subtitle: "Inner top margin",
-                            value: paddingBinding(
-                                \.compactContentTopPadding,
-                                resolved: \.resolvedCompactContentTopPadding
-                            ),
-                            range: NotchSettings.compactContentVerticalPaddingRange,
-                            suffix: " pt",
-                            precision: 0
-                        )
-
-                        Divider().opacity(0.12).padding(.vertical, 12)
-
-                        AppleValueSlider(
-                            title: "Bottom padding",
-                            subtitle: "Inner bottom margin",
-                            value: paddingBinding(
-                                \.compactContentBottomPadding,
-                                resolved: \.resolvedCompactContentBottomPadding
-                            ),
-                            range: NotchSettings.compactContentVerticalPaddingRange,
+                        CompactValueSlider(
+                            title: "Expanded height",
+                            value: $model.settings.expandedHeight,
+                            range: NotchSettings.expandedHeightRange,
                             suffix: " pt",
                             precision: 0
                         )
                     }
-                }
-            }
 
-            // Hardware Notch & Navigation Card
-            SettingCard(title: "Hardware Notch & Navigation", icon: "laptopcomputer.and.ipad", iconColor: .blue) {
-                VStack(spacing: 0) {
-                    SettingRow(
-                        title: "Avoid MacBook Hardware Notch",
-                        subtitle: "Adds top clearance so header icons are never covered by the physical MacBook screen notch"
-                    ) {
-                        Toggle("", isOn: avoidHardwareNotchBinding)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    SettingRow(
-                        title: "Navigation Bar Style",
-                        subtitle: model.settings.resolvedHeaderNavigationStyle.subtitle
-                    ) {
-                        Picker("", selection: headerNavigationStyleBinding) {
-                            ForEach(HeaderNavigationStyle.allCases) { style in
-                                Text(style.title).tag(style)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(width: 190)
-                    }
-                }
-            }
-
-            // Expanded Notch Section Card
-            SettingCard(title: "Expanded Notch Dimensions", icon: "rectangle.expand.vertical", iconColor: .orange) {
-                VStack(spacing: 0) {
-                    AppleValueSlider(
-                        title: "Width",
-                        subtitle: "Expanded width of the open notch panel",
-                        value: $model.settings.expandedWidth,
-                        range: NotchSettings.expandedWidthRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    SettingRow(
-                        title: "Quick Width Preset",
-                        subtitle: "Match expanded width directly to compact width"
-                    ) {
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    HStack {
+                        Button("Match compact width") {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
                                 model.settings.expandedWidth = model.settings.compactWidth
                             }
-                        } label: {
-                            Label("Match compact width", systemImage: "arrow.right.to.line")
-                                .font(.system(size: 11, weight: .medium))
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(model.settings.expandedWidth == model.settings.compactWidth)
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Height",
-                        subtitle: "Expanded height when open",
-                        value: $model.settings.expandedHeight,
-                        range: NotchSettings.expandedHeightRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Left padding",
-                        subtitle: "Expanded inner left margin",
-                        value: paddingBinding(
-                            \.expandedContentLeadingPadding,
-                            resolved: \.resolvedExpandedContentLeadingPadding
-                        ),
-                        range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Right padding",
-                        subtitle: "Expanded inner right margin",
-                        value: paddingBinding(
-                            \.expandedContentTrailingPadding,
-                            resolved: \.resolvedExpandedContentTrailingPadding
-                        ),
-                        range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Top padding",
-                        subtitle: "Expanded inner top margin",
-                        value: paddingBinding(
-                            \.expandedContentTopPadding,
-                            resolved: \.resolvedExpandedContentTopPadding
-                        ),
-                        range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-
-                    Divider().opacity(0.12).padding(.vertical, 12)
-
-                    AppleValueSlider(
-                        title: "Bottom padding",
-                        subtitle: "Expanded inner bottom margin",
-                        value: paddingBinding(
-                            \.expandedContentBottomPadding,
-                            resolved: \.resolvedExpandedContentBottomPadding
-                        ),
-                        range: NotchSettings.expandedContentPaddingRange,
-                        suffix: " pt",
-                        precision: 0
-                    )
-                }
-            }
-        }
-    }
-
-    // MARK: - Privacy Tab Content
-
-    private var privacyTabContent: some View {
-        VStack(spacing: 16) {
-            // Notifications Card
-            SettingCard(title: "Notifications", icon: "bell.badge.fill", iconColor: .pink) {
-                SettingRow(
-                    title: "Notify when timers finish",
-                    subtitle: "Send a system notification banner when a timer reaches zero"
-                ) {
-                    Toggle("", isOn: $model.settings.timerNotificationsEnabled)
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                }
-            }
-
-            // About Card
-            SettingCard(title: "About & Privacy Guarantee", icon: "shield.checkerboard", iconColor: .blue) {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        appIconView(size: 38)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Re:notch")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundStyle(.primary)
-
-                            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0")")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.secondary)
-                        }
 
                         Spacer()
 
-                        Image(systemName: "checkmark.shield.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.green)
+                        Button {
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                                showPaddingControls.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text("Inner Padding")
+                                Image(systemName: showPaddingControls ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 9, weight: .semibold))
+                            }
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.notchMuted)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(showPaddingControls ? "Hide inner padding controls" : "Show inner padding controls")
                     }
 
-                    Divider().opacity(0.12)
+                    if showPaddingControls {
+                        sectionDivider
 
-                    HStack(spacing: 10) {
-                        Image(systemName: "lock.shield.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.secondary)
+                        Text("Compact Padding")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(Color.notchMuted)
 
-                        Text("No account, cloud sync, or background analytics. All your data stays strictly local on this Mac.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineSpacing(2)
+                        HStack(spacing: 16) {
+                            CompactValueSlider(
+                                title: "Left",
+                                value: paddingBinding(\.compactContentLeadingPadding, resolved: \.resolvedCompactContentLeadingPadding),
+                                range: NotchSettings.compactContentHorizontalPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                            CompactValueSlider(
+                                title: "Right",
+                                value: paddingBinding(\.compactContentTrailingPadding, resolved: \.resolvedCompactContentTrailingPadding),
+                                range: NotchSettings.compactContentHorizontalPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                        }
+                        HStack(spacing: 16) {
+                            CompactValueSlider(
+                                title: "Top",
+                                value: paddingBinding(\.compactContentTopPadding, resolved: \.resolvedCompactContentTopPadding),
+                                range: NotchSettings.compactContentVerticalPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                            CompactValueSlider(
+                                title: "Bottom",
+                                value: paddingBinding(\.compactContentBottomPadding, resolved: \.resolvedCompactContentBottomPadding),
+                                range: NotchSettings.compactContentVerticalPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                        }
+
+                        Text("Expanded Padding")
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .foregroundStyle(Color.notchMuted)
+                            .padding(.top, 4)
+
+                        HStack(spacing: 16) {
+                            CompactValueSlider(
+                                title: "Left",
+                                value: paddingBinding(\.expandedContentLeadingPadding, resolved: \.resolvedExpandedContentLeadingPadding),
+                                range: NotchSettings.expandedContentPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                            CompactValueSlider(
+                                title: "Right",
+                                value: paddingBinding(\.expandedContentTrailingPadding, resolved: \.resolvedExpandedContentTrailingPadding),
+                                range: NotchSettings.expandedContentPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                        }
+                        HStack(spacing: 16) {
+                            CompactValueSlider(
+                                title: "Top",
+                                value: paddingBinding(\.expandedContentTopPadding, resolved: \.resolvedExpandedContentTopPadding),
+                                range: NotchSettings.expandedContentPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                            CompactValueSlider(
+                                title: "Bottom",
+                                value: paddingBinding(\.expandedContentBottomPadding, resolved: \.resolvedExpandedContentBottomPadding),
+                                range: NotchSettings.expandedContentPaddingRange,
+                                suffix: " pt",
+                                precision: 0
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // MARK: - Focus Blocker Tab Content
+    // MARK: - Focus Blocker Tab (Simplified)
 
     private var focusBlockerTabContent: some View {
-        VStack(spacing: 16) {
-            // Master Blocker Card
-            SettingCard(title: "Distraction Shield & Screen Takeover", icon: "shield.fill", iconColor: .red) {
-                VStack(spacing: 0) {
-                    SettingRow(
-                        title: "Enable Focus Blocker",
-                        subtitle: "Automatically trigger fullscreen takeover when opening distracting websites"
-                    ) {
-                        Toggle("", isOn: focusBlockerEnabledBinding)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
+        let activeRules = model.settings.resolvedFocusBlockerCustomRules
+        let availablePresets = quickPresets.filter { !activeRules.contains($0) }
+        let isRuleEmpty = newRuleInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-                    Divider().opacity(0.12).padding(.vertical, 10)
-
-                    SettingRow(
-                        title: "Strict Pomodoro Only",
-                        subtitle: "Only block websites during active Focus sessions (not during Break or idle)"
-                    ) {
-                        Toggle("", isOn: focusBlockerStrictBinding)
-                            .toggleStyle(.switch)
-                            .labelsHidden()
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 10)
-
-                    // Accessibility Permissions Status
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("macOS Accessibility Permission")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.primary)
-
-                            Text(model.focusBlocker.isAccessibilityGranted
-                                 ? "Permission active. Re:notch can detect frontmost browser window titles."
-                                 : "Required to detect active browser window titles and tabs.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
+        return VStack(alignment: .leading, spacing: 16) {
+            SettingSection("Protection") {
+                SettingToggleRow("Enable Focus Blocker", isOn: focusBlockerEnabledBinding)
+                sectionDivider
+                SettingToggleRow(
+                    "Strict Pomodoro only",
+                    subtitle: "Block sites only while a Focus session is running",
+                    isOn: focusBlockerStrictBinding
+                )
+                sectionDivider
+                SettingRow(
+                    "Accessibility permission",
+                    subtitle: model.focusBlocker.isAccessibilityGranted
+                        ? "Active for frontmost browser window detection"
+                        : "Required to detect active browser tabs"
+                ) {
+                    HStack(spacing: 8) {
                         if model.focusBlocker.isAccessibilityGranted {
                             HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
+                                Circle()
+                                    .fill(Color.notchAccent)
+                                    .frame(width: 6, height: 6)
                                 Text("Active")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundStyle(.green)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color.notchAccent)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.green.opacity(0.12))
-                            .clipShape(Capsule())
+                            .padding(.horizontal, 8)
+                            .frame(height: 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color.notchAccent.opacity(0.12))
+                            )
                         } else {
                             Button("Grant Access") {
                                 model.focusBlocker.requestAccessibilityPermission()
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
-                            .tint(.blue)
+                            .tint(Color.notchAccent)
+                            .foregroundStyle(.black)
                         }
+
+                        Button {
+                            model.triggerFocusTakeover(
+                                site: "youtube.com",
+                                appName: "Google Chrome",
+                                targetApp: NSWorkspace.shared.frontmostApplication
+                            )
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "eye")
+                                    .font(.system(size: 10, weight: .semibold))
+                                Text("Preview")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundStyle(.white.opacity(0.88))
+                            .padding(.horizontal, 9)
+                            .frame(height: 24)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color.white.opacity(0.08))
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        }
+                        .buttonStyle(NotchPressButtonStyle())
+                        .help("Preview fullscreen focus takeover overlay")
                     }
                 }
             }
 
-            // Blacklist Rules Management Card
-            SettingCard(title: "Blocked Domains & Keywords", icon: "list.bullet.rectangle.portrait.fill", iconColor: .orange) {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Add domain names or keywords (e.g. youtube.com, twitter.com, threads.net).")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    // Add Custom Rule Field
+            SettingSection("Blocked Sites (\(activeRules.count))") {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
-                        TextField("Enter domain or keyword (e.g. reddit.com)...", text: $newRuleInput)
+                        TextField("Add domain or keyword (e.g. reddit.com)…", text: $newRuleInput)
                             .textFieldStyle(.plain)
-                            .padding(8)
+                            .font(.system(size: 12))
+                            .padding(.horizontal, 10)
+                            .frame(height: 30)
                             .background(Color.white.opacity(0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 0.6)
                             )
-                            .onSubmit {
-                                addRule()
-                            }
+                            .onSubmit(addRule)
 
-                        Button {
-                            addRule()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus")
-                                Text("Add")
-                            }
-                            .font(.system(size: 12, weight: .medium))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.blue)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        Button(action: addRule) {
+                            Text("Add")
+                                .font(.system(size: 11.5, weight: .semibold))
+                                .padding(.horizontal, 12)
+                                .frame(height: 30)
+                                .background(isRuleEmpty ? Color.white.opacity(0.08) : Color.notchAccent)
+                                .foregroundStyle(isRuleEmpty ? Color.notchMuted : .black)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(newRuleInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
+                        .buttonStyle(NotchPressButtonStyle())
+                        .disabled(isRuleEmpty)
 
-                    // Presets Quick Add
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Quick Presets")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-
-                        let presets = ["youtube.com", "threads.net", "instagram.com", "x.com", "tiktok.com", "reddit.com", "netflix.com"]
-                        FlowLayout(spacing: 6) {
-                            ForEach(presets, id: \.self) { preset in
-                                let isAdded = model.settings.resolvedFocusBlockerCustomRules.contains(preset)
-                                Button {
-                                    togglePreset(preset)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle")
-                                            .font(.system(size: 10))
-                                        Text(preset)
-                                            .font(.system(size: 11, weight: .medium))
-                                    }
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(isAdded ? Color.red.opacity(0.18) : Color.white.opacity(0.06))
-                                    .foregroundStyle(isAdded ? Color.red.opacity(0.9) : Color.secondary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .stroke(isAdded ? Color.red.opacity(0.3) : Color.white.opacity(0.1), lineWidth: 0.5)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-
-                    Divider().opacity(0.12).padding(.vertical, 4)
-
-                    // Current Active Rules List
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Active Rules (\(model.settings.resolvedFocusBlockerCustomRules.count))")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.primary)
-
-                            Spacer()
-
-                            Button("Reset to Defaults") {
+                        if activeRules != FocusBlockerService.defaultRules {
+                            Button("Reset") {
                                 model.settings.focusBlockerCustomRules = FocusBlockerService.defaultRules
                             }
-                            .font(.caption)
-                            .foregroundStyle(.blue)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.notchMuted)
                             .buttonStyle(.plain)
+                            .help("Restore default blocked sites")
                         }
+                    }
 
-                        FlowLayout(spacing: 8) {
-                            ForEach(model.settings.resolvedFocusBlockerCustomRules, id: \.self) { rule in
+                    if activeRules.isEmpty {
+                        Text("Using default list while empty. Add a domain above or click Reset.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.notchMuted)
+                    } else {
+                        FlowLayout(spacing: 6) {
+                            ForEach(activeRules, id: \.self) { rule in
                                 HStack(spacing: 6) {
                                     Text(rule)
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(.primary)
+                                        .font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.92))
 
                                     Button {
                                         removeRule(rule)
                                     } label: {
                                         Image(systemName: "xmark")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .foregroundStyle(.secondary)
+                                            .font(.system(size: 8.5, weight: .bold))
+                                            .foregroundStyle(Color.notchMuted)
                                     }
                                     .buttonStyle(.plain)
+                                    .help("Remove \(rule)")
+                                    .accessibilityLabel("Remove \(rule)")
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .padding(.horizontal, 9)
+                                .frame(height: 25)
+                                .background(Color.white.opacity(0.07))
+                                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .stroke(Color.white.opacity(0.14), lineWidth: 0.5)
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(Color.white.opacity(0.11), lineWidth: 0.6)
                                 )
+                            }
+                        }
+                    }
+
+                    if !availablePresets.isEmpty {
+                        sectionDivider
+
+                        FlowLayout(spacing: 6) {
+                            ForEach(availablePresets, id: \.self) { preset in
+                                Button {
+                                    togglePreset(preset)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 8.5, weight: .bold))
+                                        Text(preset)
+                                            .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .frame(height: 23)
+                                    .background(Color.white.opacity(0.04))
+                                    .foregroundStyle(Color.notchMuted)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .stroke(Color.white.opacity(0.08), lineWidth: 0.6)
+                                    )
+                                }
+                                .buttonStyle(NotchPressButtonStyle())
+                                .accessibilityLabel("Block \(preset)")
                             }
                         }
                     }
                 }
             }
 
-            // Preview & Testing Card
-            SettingCard(title: "Preview & Diagnostics", icon: "play.circle.fill", iconColor: .purple) {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Test Fullscreen Takeover Overlay")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.primary)
+            Text("Tip: You can also toggle Focus Blocker, snooze for 5 minutes, or edit rules directly from the Blocker tab in the notch.")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.notchMuted)
+        }
+    }
 
-                        Text("Preview the fluid Apple Design spring animation and HTML takeover screen.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+    // MARK: - Privacy Tab (Simplified)
+
+    private var privacyTabContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SettingSection("Notifications") {
+                SettingToggleRow(
+                    "Notify when timers finish",
+                    isOn: $model.settings.timerNotificationsEnabled
+                )
+            }
+
+            SettingSection("About") {
+                HStack(spacing: 12) {
+                    appIconView(size: 36)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Re:notch")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.0")")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.notchMuted)
                     }
 
                     Spacer()
 
-                    Button {
-                        model.triggerFocusTakeover(
-                            site: "youtube.com",
-                            appName: "Google Chrome",
-                            targetApp: NSWorkspace.shared.frontmostApplication
-                        )
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                            Text("Preview Takeover")
-                        }
-                        .font(.system(size: 12, weight: .semibold))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(.purple)
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.notchAccent)
                 }
+
+                sectionDivider
+
+                Text("All settings, todos, and shelf references stay strictly local on this Mac. No account, cloud sync, or analytics.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.notchMuted)
+                    .lineSpacing(2)
             }
         }
     }
 
-    private var focusBlockerEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { model.settings.resolvedFocusBlockerEnabled },
-            set: { model.settings.focusBlockerEnabled = $0 }
-        )
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.07))
+            .frame(height: 1)
+            .padding(.vertical, 6)
     }
 
-    private var focusBlockerStrictBinding: Binding<Bool> {
-        Binding(
-            get: { model.settings.resolvedFocusBlockerStrictPomodoroOnly },
-            set: { model.settings.focusBlockerStrictPomodoroOnly = $0 }
-        )
-    }
+    // MARK: - Actions & Bindings
 
     private func addRule() {
         let trimmed = newRuleInput.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -951,21 +740,19 @@ struct SettingsView: View {
 
     private func removeRule(_ rule: String) {
         var current = model.settings.resolvedFocusBlockerCustomRules
-        current.removeAll(where: { $0 == rule })
+        current.removeAll { $0 == rule }
         model.settings.focusBlockerCustomRules = current
     }
 
     private func togglePreset(_ preset: String) {
         var current = model.settings.resolvedFocusBlockerCustomRules
         if current.contains(preset) {
-            current.removeAll(where: { $0 == preset })
+            current.removeAll { $0 == preset }
         } else {
             current.append(preset)
         }
         model.settings.focusBlockerCustomRules = current
     }
-
-    // MARK: - Bindings & Helpers
 
     @ViewBuilder
     private func appIconView(size: CGFloat) -> some View {
@@ -974,14 +761,12 @@ struct SettingsView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)
-                .shadow(color: .black.opacity(0.35), radius: 3, y: 1.5)
         } else if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
                   let icon = NSImage(contentsOf: iconURL) {
             Image(nsImage: icon)
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)
-                .shadow(color: .black.opacity(0.35), radius: 3, y: 1.5)
         } else {
             Image(systemName: "capsule.tophalf.filled")
                 .font(.system(size: size * 0.5, weight: .bold))
@@ -1045,6 +830,20 @@ struct SettingsView: View {
         )
     }
 
+    private var focusBlockerEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { model.settings.resolvedFocusBlockerEnabled },
+            set: { model.settings.focusBlockerEnabled = $0 }
+        )
+    }
+
+    private var focusBlockerStrictBinding: Binding<Bool> {
+        Binding(
+            get: { model.settings.resolvedFocusBlockerStrictPomodoroOnly },
+            set: { model.settings.focusBlockerStrictPomodoroOnly = $0 }
+        )
+    }
+
     private func paddingBinding(
         _ setting: WritableKeyPath<NotchSettings, Double?>,
         resolved: KeyPath<NotchSettings, Double>
@@ -1054,191 +853,172 @@ struct SettingsView: View {
             set: { model.settings[keyPath: setting] = $0 }
         )
     }
-
-    private var appearanceDescription: String {
-        switch model.settings.resolvedAppearance {
-        case .black:
-            return "A solid deep black surface engineered to seamlessly merge with physical MacBook display cutouts."
-        case .liquidGlass:
-            if #available(macOS 26.0, *) {
-                return "Apple Liquid Glass material that dynamically refracts background color and light."
-            }
-            return "A translucent frosted material fallback for macOS versions prior to native Liquid Glass."
-        }
-    }
 }
 
-// MARK: - Reusable Apple Design Components
+// MARK: - Simplified Reusable Components
 
 private struct SidebarTabButton: View {
     let tab: SettingsTab
     let isSelected: Bool
     let action: () -> Void
-
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(spacing: 9) {
                 Image(systemName: tab.iconName)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.white : (isHovered ? .primary : .secondary))
-                    .frame(width: 18)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.notchAccent : (isHovered ? .white : Color.notchMuted))
+                    .frame(width: 16)
 
                 Text(tab.rawValue)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.white : (isHovered ? .primary : .secondary))
+                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .white : (isHovered ? .white.opacity(0.9) : Color.notchMuted))
 
                 Spacer()
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .frame(height: 30)
             .background(
-                ZStack {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.white.opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(Color.white.opacity(0.16), lineWidth: 0.8)
-                            )
-                            .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
-                    } else if isHovered {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
-                    }
-                }
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(isSelected ? Color.white.opacity(0.09) : Color.white.opacity(isHovered ? 0.045 : 0.0))
             )
-            .contentShape(Rectangle())
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                        .fill(Color.notchAccent)
+                        .frame(width: 2.5, height: 14)
+                        .padding(.leading, 2)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
-private struct SettingCard<Content: View>: View {
+private struct SettingSection<Content: View>: View {
     let title: String
-    let icon: String
-    let iconColor: Color
     @ViewBuilder let content: () -> Content
 
+    init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.content = content
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(iconColor.opacity(0.2))
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.notchMuted)
+                .padding(.leading, 2)
 
-                    Image(systemName: icon)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(iconColor)
-                }
-                .frame(width: 22, height: 22)
-
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
-
-                Spacer()
+            VStack(alignment: .leading, spacing: 0) {
+                content()
             }
-
-            content()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.white.opacity(0.035))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 0.7)
+            )
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.035))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 0.8
-                )
-        )
-        .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
     }
 }
 
 private struct SettingRow<Control: View>: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
     @ViewBuilder let control: () -> Control
 
+    init(_ title: String, subtitle: String = "", @ViewBuilder control: @escaping () -> Control) {
+        self.title = title
+        self.subtitle = subtitle
+        self.control = control
+    }
+
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1.5) {
                 Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.92))
 
                 if !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(Color.notchMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: 10)
 
             control()
         }
     }
 }
 
-private struct AppleValueSlider: View {
+private struct SettingToggleRow: View {
     let title: String
-    let subtitle: String
+    var subtitle: String = ""
+    @Binding var isOn: Bool
+
+    init(_ title: String, subtitle: String = "", isOn: Binding<Bool>) {
+        self.title = title
+        self.subtitle = subtitle
+        self._isOn = isOn
+    }
+
+    var body: some View {
+        SettingRow(title, subtitle: subtitle) {
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .labelsHidden()
+        }
+    }
+}
+
+private struct CompactValueSlider: View {
+    let title: String
     @Binding var value: Double
     let range: ClosedRange<Double>
     let suffix: String
     let precision: Int
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.88))
+                    .lineLimit(1)
 
-                    if !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(value.formatted(.number.precision(.fractionLength(precision))) + suffix)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(Color.white.opacity(0.08))
-                            .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                            )
-                    )
+                    .foregroundStyle(Color.notchMuted)
             }
 
             Slider(value: $value, in: range)
-                .tint(.accentColor)
+                .controlSize(.small)
+                .tint(Color.notchAccent)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
-// MARK: - Live Preview Component
+// MARK: - Live Preview
 
 private struct NotchAppearancePreview: View {
     let appearance: NotchAppearance
@@ -1246,85 +1026,68 @@ private struct NotchAppearancePreview: View {
     let cornerRadius: Double
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.08, green: 0.15, blue: 0.34),
-                            Color(red: 0.28, green: 0.08, blue: 0.38)
+                            Color(red: 0.16, green: 0.19, blue: 0.22),
+                            Color(red: 0.10, green: 0.12, blue: 0.13)
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                 )
 
-            Circle()
-                .fill(Color.cyan.opacity(0.75))
-                .frame(width: 92, height: 92)
-                .blur(radius: 24)
-                .offset(x: -166, y: 20)
-
-            Circle()
-                .fill(Color.purple.opacity(0.7))
-                .frame(width: 104, height: 104)
-                .blur(radius: 28)
-                .offset(x: 176, y: -18)
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 16)
 
             previewSurface
-                .frame(width: 210, height: 34)
-
-            HStack(spacing: 7) {
-                Image(systemName: appearance == .black ? "circle.lefthalf.filled" : "circle.hexagongrid.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                Text(appearance.title)
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .foregroundStyle(.white.opacity(0.88))
+                .frame(width: 200, height: 32)
+                .overlay {
+                    HStack(spacing: 6) {
+                        Image(systemName: appearance == .black ? "circle.lefthalf.filled" : "circle.hexagongrid.fill")
+                            .font(.system(size: 9.5, weight: .semibold))
+                        Text(appearance.title)
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(.white.opacity(0.9))
+                }
         }
-        .frame(height: 64)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(height: 54)
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(Color.white.opacity(0.11), lineWidth: 0.7)
         )
-        .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
-        .animation(.easeInOut(duration: 0.25), value: appearance)
-        .animation(.easeOut(duration: 0.16), value: blurRadius)
-        .animation(.easeOut(duration: 0.16), value: cornerRadius)
+        .animation(.easeInOut(duration: 0.2), value: appearance)
+        .animation(.easeOut(duration: 0.14), value: blurRadius)
+        .animation(.easeOut(duration: 0.14), value: cornerRadius)
     }
 
     private var glassMaterial: Material {
         switch blurRadius {
-        case ..<10:
-            return .ultraThinMaterial
-        case ..<20:
-            return .thinMaterial
-        default:
-            return .regularMaterial
+        case ..<10: return .ultraThinMaterial
+        case ..<20: return .thinMaterial
+        default: return .regularMaterial
         }
     }
 
     @ViewBuilder
     private var previewSurface: some View {
         let radius = CGFloat(cornerRadius)
-        let shape = AttachedNotchShape(
-            topCornerRadius: radius,
-            bottomCornerRadius: radius
-        )
+        let shape = AttachedNotchShape(topCornerRadius: radius, bottomCornerRadius: radius)
         switch appearance {
         case .black:
             shape.fill(.black)
         case .liquidGlass:
             if #available(macOS 26.0, *) {
-                shape
-                    .fill(.clear)
-                    .glassEffect(.regular, in: shape)
+                shape.fill(.clear).glassEffect(.regular, in: shape)
             } else {
                 shape
                     .fill(glassMaterial)
-                    .overlay(shape.stroke(Color.white.opacity(0.4), lineWidth: 0.8))
-                    .shadow(color: Color.black.opacity(0.3), radius: 8, y: 4)
+                    .overlay(shape.stroke(Color.white.opacity(0.38), lineWidth: 0.8))
             }
         }
     }
@@ -1333,7 +1096,7 @@ private struct NotchAppearancePreview: View {
 // MARK: - Flow Layout
 
 private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
+    var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? 400

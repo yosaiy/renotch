@@ -62,9 +62,6 @@ struct NotchView: View {
     }
 
     private var shadowColor: Color {
-        if model.mode == .fileDrop || model.mode == .success || model.mode == .focusTakeover {
-            return Color.notchAccent.opacity(shadowOpacity)
-        }
         switch model.settings.resolvedAppearance {
         case .black:
             return .black.opacity(shadowOpacity)
@@ -133,22 +130,22 @@ struct NotchView: View {
             .onTapGesture {
                 if model.mode == .compact {
                     NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
-                    withAnimation(DynamicNotchSprings.fluidExpand) {
+                    withAnimation(reduceMotion ? nil : DynamicNotchSprings.fluidExpand) {
                         model.notchClicked()
                     }
                 }
             }
             .animation(containerAnimation, value: model.currentSize)
             .animation(containerAnimation, value: model.mode)
-            .animation(.easeInOut(duration: 0.28), value: model.settings.resolvedAppearance)
-            .animation(.easeOut(duration: 0.16), value: model.settings.resolvedGlassBlurRadius)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.28), value: model.settings.resolvedAppearance)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: model.settings.resolvedGlassBlurRadius)
             .onHover { hovering in
                 guard hovering != isHovering else { return }
                 isHovering = hovering
                 if hovering {
                     NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
                 }
-                withAnimation(DynamicNotchSprings.fluidHover) {
+                withAnimation(reduceMotion ? nil : DynamicNotchSprings.fluidHover) {
                     model.hoverChanged(hovering)
                 }
             }
@@ -170,7 +167,12 @@ struct NotchView: View {
                 .mask(notchShape.padding(.horizontal, 0.5))
                 .overlay {
                     notchShape
-                        .stroke(Color.white.opacity(isEnlargedOnHover ? 0.12 : 0.0), lineWidth: 0.6)
+                        .stroke(
+                            model.mode == .fileDrop || model.mode == .success
+                                ? Color.notchAccent.opacity(0.35)
+                                : Color.white.opacity(isEnlargedOnHover ? 0.12 : 0.0),
+                            lineWidth: model.mode == .fileDrop || model.mode == .success ? 1 : 0.6
+                        )
                         .padding(.horizontal, 0.5)
                         .allowsHitTesting(false)
                 }
@@ -202,7 +204,7 @@ struct NotchView: View {
                 ExpandedNotchView(timer: model.timer)
                     .frame(
                         width: notchWidth,
-                        height: model.settings.expandedHeight + (model.settings.isHardwareNotchSafeActive ? 26 : 0),
+                        height: notchHeight,
                         alignment: .top
                     )
                     .transition(

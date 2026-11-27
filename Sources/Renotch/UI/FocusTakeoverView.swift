@@ -12,10 +12,11 @@ struct FocusTakeoverView: View {
     @State private var randomQuoteIndex = 0
     @State private var keyMonitor: Any?
     @State private var isVisible = false
+    @State private var isCloseHovered = false
 
     private static let quotes = [
         "Lock in twin",
-        "Stay focus &  keep grinding",
+        "Stay focused and keep going.",
         "Deep work is the superpower of the 21st century.",
         "Starve your distractions, feed your focus.",
         "No more brainrot"
@@ -62,30 +63,24 @@ struct FocusTakeoverView: View {
         }
     }
 
-    // MARK: - Ambient Aura Layer
+    // MARK: - Ambient Backdrop Layer
 
     private var ambientAuraLayer: some View {
-        ZStack {
-            // Top Left Magenta/Pink Aura
-            Circle()
-                .fill(Color(red: 0.85, green: 0.18, blue: 0.52).opacity(0.24))
-                .frame(width: 520, height: 520)
-                .offset(x: -120, y: -260)
-                .blur(radius: 95)
+        ZStack(alignment: .top) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.05, green: 0.07, blue: 0.06),
+                    Color.black
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            // Top Right Cyan/Teal Aura
-            Circle()
-                .fill(Color(red: 0.12, green: 0.68, blue: 0.68).opacity(0.22))
-                .frame(width: 540, height: 540)
-                .offset(x: 140, y: -260)
-                .blur(radius: 95)
-
-            // Center Blue Button Aura
-            Circle()
-                .fill(Color(red: 0.08, green: 0.52, blue: 1.0).opacity(0.24))
-                .frame(width: 440, height: 260)
-                .offset(y: 180)
-                .blur(radius: 80)
+            Rectangle()
+                .fill(Color.notchAccent.opacity(0.35))
+                .frame(height: 2)
+                .ignoresSafeArea(edges: .top)
         }
         .allowsHitTesting(false)
     }
@@ -155,37 +150,34 @@ struct FocusTakeoverView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black.opacity(0.85))
 
                     Text("Close Tab & Return to Focus")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black)
 
                     Text("⌘W")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.black.opacity(0.78))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.22))
+                        .background(Color.black.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 12)
                 .background(
-                    Capsule()
-                        .fill(Color(red: 0.08, green: 0.54, blue: 1.0))
-                        .shadow(color: Color(red: 0.08, green: 0.54, blue: 1.0).opacity(0.55), radius: 18, y: 6)
-                )
-                .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(0.25), lineWidth: 0.8)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(isCloseHovered ? 1.0 : 0.92))
                 )
             }
             .buttonStyle(TactileAppleButtonStyle())
+            .onHover { isCloseHovered = $0 }
+            .animation(.easeOut(duration: 0.14), value: isCloseHovered)
 
             Text("Press ⌘W or click to close tab")
                 .font(.system(size: 11.5, weight: .regular))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(Color.notchMuted)
         }
     }
 

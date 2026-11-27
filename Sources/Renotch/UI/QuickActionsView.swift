@@ -55,6 +55,7 @@ private struct ActionTile: View {
     let icon: String
     var tint: Color = .white
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
@@ -64,6 +65,7 @@ private struct ActionTile: View {
                     .foregroundStyle(tint)
                 Text(title)
                     .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.9))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -71,13 +73,17 @@ private struct ActionTile: View {
             .frame(height: 60)
             .background(
                 RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.white.opacity(isHovering ? 0.11 : 0.06))
                     .overlay(
                         RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .stroke(Color.white.opacity(0.055), lineWidth: 1)
+                            .stroke(Color.white.opacity(isHovering ? 0.14 : 0.055), lineWidth: 1)
                     )
             )
+            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NotchPressButtonStyle())
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: isHovering)
+        .accessibilityLabel(title)
     }
 }

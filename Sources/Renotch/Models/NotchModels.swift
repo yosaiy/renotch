@@ -61,6 +61,7 @@ enum NotchSection: String, CaseIterable, Identifiable, Sendable {
     case welcome
     case music
     case timer
+    case blocker
     case calendar
     case shelf
     case todo

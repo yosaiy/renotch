@@ -17,7 +17,7 @@ struct WelcomeView: View {
 
                 Text("Servers, builds, and containers stay close without interrupting your flow.")
                     .font(.system(size: 10.5, weight: .regular))
-                    .foregroundStyle(.white.opacity(0.52))
+                    .foregroundStyle(Color.notchMuted)
                     .lineLimit(1)
             }
             .padding(.top, 8)
@@ -29,7 +29,7 @@ struct WelcomeView: View {
                 Toggle(isOn: $model.settings.expandOnHover) {
                     Text("Enlarge on hover")
                         .font(.system(size: 10.5, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.68))
+                        .foregroundStyle(.white.opacity(0.78))
                 }
                 .toggleStyle(.switch)
                 .controlSize(.mini)
@@ -39,28 +39,19 @@ struct WelcomeView: View {
                 Button {
                     model.completeOnboarding()
                 } label: {
-                    HStack(spacing: 6) {
-                        Text("Continue")
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 9, weight: .bold))
-                    }
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.black.opacity(0.88))
-                    .padding(.horizontal, 13)
-                    .frame(height: 26)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(Color.white.opacity(isContinueHovered ? 1 : 0.92))
-                            .shadow(
-                                color: Color.white.opacity(isContinueHovered ? 0.13 : 0.06),
-                                radius: isContinueHovered ? 10 : 5,
-                                y: 2
-                            )
-                    )
+                    Text("Continue")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.9))
+                        .padding(.horizontal, 14)
+                        .frame(height: 26)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color.white.opacity(isContinueHovered ? 1 : 0.92))
+                        )
                 }
                 .buttonStyle(WelcomePrimaryButtonStyle())
                 .onHover { isContinueHovered = $0 }
-                .animation(.easeOut(duration: 0.18), value: isContinueHovered)
+                .animation(.easeOut(duration: 0.16), value: isContinueHovered)
                 .accessibilityHint("Finish setup and collapse Re:notch")
             }
             .padding(.top, 9)
@@ -78,7 +69,7 @@ struct WelcomeView: View {
                     .foregroundStyle(.white.opacity(0.96))
                 Text("Developer workspace")
                     .font(.system(size: 9.5, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.38))
+                    .foregroundStyle(Color.notchMuted)
             }
 
             Spacer()
@@ -87,20 +78,15 @@ struct WelcomeView: View {
                 Circle()
                     .fill(Color.notchAccent)
                     .frame(width: 5, height: 5)
-                    .shadow(color: Color.notchAccent.opacity(0.55), radius: 4)
                 Text("Ready")
                     .font(.system(size: 9.5, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.58))
+                    .foregroundStyle(.white.opacity(0.76))
             }
             .padding(.horizontal, 9)
             .frame(height: 24)
             .background(
-                Capsule()
-                    .fill(Color.white.opacity(0.055))
-                    .overlay(
-                        Capsule()
-                            .stroke(Color.white.opacity(0.07), lineWidth: 0.7)
-                    )
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
             )
         }
     }

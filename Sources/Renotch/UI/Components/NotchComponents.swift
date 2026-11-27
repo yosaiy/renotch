@@ -204,6 +204,7 @@ struct SectionButton: View {
     let icon: String
     let isSelected: Bool
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
@@ -218,18 +219,25 @@ struct SectionButton: View {
                 }
             }
             .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(isSelected ? .white : .secondary)
+            .foregroundStyle(isSelected ? .white : (isHovering ? Color.white.opacity(0.88) : Color.notchMuted))
             .padding(.horizontal, isSelected ? 10 : 7)
             .frame(height: 26)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.white.opacity(0.14) : Color.white.opacity(0.035))
+                    .fill(
+                        isSelected
+                            ? Color.white.opacity(0.14)
+                            : Color.white.opacity(isHovering ? 0.08 : 0.035)
+                    )
             )
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NotchPressButtonStyle())
+        .onHover { isHovering = $0 }
         .help(title)
         .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .animation(.easeOut(duration: 0.14), value: isHovering)
         .animation(.snappy(duration: 0.24), value: isSelected)
     }
 }
@@ -241,13 +249,11 @@ struct ActivityStateDot: View {
         Circle()
             .fill(state.tint)
             .frame(width: 6, height: 6)
-            .shadow(color: state.tint.opacity(state == .running ? 0.8 : 0), radius: 4)
             .overlay {
                 if state == .running {
                     Circle()
-                        .stroke(state.tint.opacity(0.55), lineWidth: 1)
-                        .scaleEffect(1.8)
-                        .opacity(0.5)
+                        .stroke(state.tint.opacity(0.45), lineWidth: 1)
+                        .scaleEffect(1.65)
                 }
             }
             .accessibilityHidden(true)
@@ -340,6 +346,7 @@ struct SmallActionButton: View {
     let icon: String
     var tint: Color = .white
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
@@ -353,14 +360,26 @@ struct SmallActionButton: View {
             .frame(height: 30)
             .background(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(Color.white.opacity(0.09))
+                    .fill(Color.white.opacity(isHovering ? 0.14 : 0.09))
                     .overlay(
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            .stroke(Color.white.opacity(isHovering ? 0.14 : 0.06), lineWidth: 1)
                     )
             )
+            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NotchPressButtonStyle())
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: isHovering)
+    }
+}
+
+struct NotchPressButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .opacity(configuration.isPressed ? 0.84 : 1.0)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
@@ -403,6 +422,8 @@ extension Color {
     static let notchAccent = Color(red: 0.58, green: 0.98, blue: 0.67)
     static let notchMuted = Color(red: 0.62, green: 0.64, blue: 0.70)
     static let musicAccent = Color(red: 0.96, green: 0.20, blue: 0.36)
+    static let notchBreak = Color(red: 0.42, green: 0.78, blue: 0.98)
+    static let notchDanger = Color(red: 0.96, green: 0.38, blue: 0.38)
 }
 
 struct VisualEffectBlur: NSViewRepresentable {

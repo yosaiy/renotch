@@ -1,58 +1,72 @@
+import AppKit
 import SwiftUI
 
 struct MusicPlayerView: View {
     @ObservedObject var music: MusicService
     @State private var draggedPosition: Double?
     @State private var draggedVolume: Double?
+    @State private var volumeBeforeMute: Double = 0.7
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .center, spacing: 16) {
             AlbumArtworkView(
                 artwork: music.artwork,
-                cornerRadius: 12,
+                cornerRadius: 10,
                 showGlow: true,
                 isPlaying: music.isPlaying
             )
-            .frame(width: 82, height: 82)
+            .frame(width: 88, height: 88)
 
             if let track = music.track {
-                playerDetails(track)
+                playerDeck(track)
             } else {
-                emptyState
+                emptyDeck
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
 
-    private func playerDetails(_ track: MusicTrack) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    // MARK: - Active Media Deck
+
+    private func playerDeck(_ track: MusicTrack) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Track Identity + Source Status
             HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14.5, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
+
                     Text(metadata(for: track))
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.system(size: 10.5, weight: .regular))
                         .foregroundStyle(Color.notchMuted)
                         .lineLimit(1)
                 }
+
                 Spacer(minLength: 6)
-                HStack(spacing: 4) {
+
+                HStack(spacing: 5) {
                     Circle()
-                        .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
+                        .fill(music.isPlaying ? sourceAccent : Color.white.opacity(0.28))
                         .frame(width: 5, height: 5)
-                    Text(music.isPlaying ? "Playing" : "Paused")
+                        .accessibilityHidden(true)
+                    Text(music.isPlaying ? music.activeSource.displayName : "Paused")
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundStyle(music.isPlaying ? .white.opacity(0.84) : Color.notchMuted)
                 }
-                .font(.system(size: 8.5, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .accessibilityLabel("Playback status: \(music.isPlaying ? "playing" : "paused")")
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(music.activeSource.displayName), \(music.isPlaying ? "playing" : "paused")")
             }
 
-            HStack(spacing: 7) {
+            Spacer(minLength: 6)
+
+            // Scrubber + Precision Timestamps
+            HStack(spacing: 8) {
                 Text(MusicService.formattedTime(activePosition))
-                    .frame(width: 28, alignment: .leading)
+                    .frame(minWidth: 28, alignment: .leading)
+
                 Slider(
                     value: Binding(
                         get: { activePosition },
@@ -65,72 +79,87 @@ struct MusicPlayerView: View {
                         self.draggedPosition = nil
                     }
                 )
-                .tint(Color.musicAccent)
+                .tint(sourceAccent)
+                .accessibilityLabel("Playback position")
+
                 Text("−" + MusicService.formattedTime(max(0, track.duration - activePosition)))
-                    .frame(width: 36, alignment: .trailing)
+                    .frame(minWidth: 34, alignment: .trailing)
             }
-            .font(.system(size: 8, weight: .medium, design: .rounded))
+            .font(.system(size: 9, weight: .medium, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Color.notchMuted)
 
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    PlayerControlButton(
-                        icon: "shuffle",
-                        title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
-                        size: 27,
-                        isActive: music.shuffleEnabled,
-                        activeColor: sourceAccent,
-                        action: music.toggleShuffle
-                    )
+            Spacer(minLength: 6)
 
-                    PlayerControlButton(
-                        icon: "backward.fill",
-                        title: "Previous",
-                        size: 27,
-                        action: music.previousTrack
-                    )
-
-                    Button(action: music.togglePlayback) {
-                        Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.black)
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(.white))
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(PlayerPressButtonStyle())
-                    .help(music.isPlaying ? "Pause" : "Play")
-
-                    PlayerControlButton(
-                        icon: "forward.fill",
-                        title: "Next",
-                        size: 27,
-                        action: music.nextTrack
-                    )
-
-                    PlayerControlButton(
-                        icon: music.repeatMode == .one ? "repeat.1" : "repeat",
-                        title: repeatHelp,
-                        size: 27,
-                        isActive: music.repeatMode != .off,
-                        activeColor: sourceAccent,
-                        action: music.cycleRepeatMode
-                    )
-                }
-                .padding(.horizontal, 4)
-                .frame(height: 36)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.045))
+            // Open Transport + Volume Rail
+            HStack(spacing: 6) {
+                PlayerControlButton(
+                    icon: "shuffle",
+                    title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
+                    size: 26,
+                    isActive: music.shuffleEnabled,
+                    activeColor: sourceAccent,
+                    action: music.toggleShuffle
                 )
 
-                Spacer(minLength: 8)
+                PlayerControlButton(
+                    icon: "backward.fill",
+                    title: "Previous track",
+                    size: 26,
+                    action: music.previousTrack
+                )
 
-                HStack(spacing: 7) {
-                    Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.notchMuted)
+                Button {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
+                    music.togglePlayback()
+                } label: {
+                    Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 11.5, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(.white))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(PlayerPressButtonStyle())
+                .help(music.isPlaying ? "Pause" : "Play")
+                .accessibilityLabel(music.isPlaying ? "Pause" : "Play")
+
+                PlayerControlButton(
+                    icon: "forward.fill",
+                    title: "Next track",
+                    size: 26,
+                    action: music.nextTrack
+                )
+
+                PlayerControlButton(
+                    icon: music.repeatMode == .one ? "repeat.1" : "repeat",
+                    title: repeatHelp,
+                    size: 26,
+                    isActive: music.repeatMode != .off,
+                    activeColor: sourceAccent,
+                    action: music.cycleRepeatMode
+                )
+
+                Spacer(minLength: 10)
+
+                Rectangle()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 1, height: 16)
+
+                HStack(spacing: 6) {
+                    Button {
+                        toggleMute()
+                    } label: {
+                        Image(systemName: activeVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.system(size: 9.5, weight: .medium))
+                            .foregroundStyle(activeVolume == 0 ? Color.notchMuted : .white.opacity(0.8))
+                            .frame(width: 18, height: 18)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlayerPressButtonStyle())
+                    .help(activeVolume == 0 ? "Unmute" : "Mute")
+                    .accessibilityLabel(activeVolume == 0 ? "Unmute" : "Mute")
+
                     Slider(
                         value: Binding(
                             get: { activeVolume },
@@ -143,59 +172,78 @@ struct MusicPlayerView: View {
                             self.draggedVolume = nil
                         }
                     )
-                    .tint(.white.opacity(0.82))
+                    .tint(.white.opacity(0.84))
+                    .accessibilityLabel("Volume")
                 }
-                .frame(width: 94)
+                .frame(width: 96)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: 88, alignment: .leading)
     }
 
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 7) {
+    // MARK: - Empty / Permission State
+
+    private var emptyDeck: some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(
                 music.automationDenied
                     ? "\(music.activeSource.displayName) access is off"
                     : "Nothing playing"
             )
-                .font(.system(size: 14, weight: .semibold))
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white)
+
             Text(
                 music.automationDenied
-                    ? "Allow Re:notch to control \(music.activeSource.displayName) in System Settings → Privacy & Security → Automation."
-                    : "Play a song in Apple Music or Spotify and its artwork and controls will appear here."
+                    ? "Allow Re:notch to control \(music.activeSource.displayName) in System Settings > Privacy & Security > Automation."
+                    : "Start playback in Apple Music or Spotify to control it from the notch."
             )
-            .font(.system(size: 10))
+            .font(.system(size: 10.5))
             .foregroundStyle(Color.notchMuted)
             .lineLimit(2)
             .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 7) {
+            HStack(spacing: 8) {
                 sourceButton(.appleMusic)
                 sourceButton(.spotify)
             }
+            .padding(.top, 2)
         }
-        .frame(maxWidth: 310, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func sourceButton(_ source: MusicSource) -> some View {
-        Button {
+        let installed = music.isInstalled(source)
+        return Button {
             music.open(source)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: source == .spotify ? "waveform.circle.fill" : "music.note")
+                    .font(.system(size: 10, weight: .semibold))
                 Text("Open \(source.displayName)")
+                    .font(.system(size: 10.5, weight: .semibold))
             }
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 10)
+            .foregroundStyle(source == .appleMusic ? .white : .black)
+            .padding(.horizontal, 11)
             .frame(height: 27)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(source == .spotify ? spotifyAccent : Color.musicAccent)
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(source == .spotify ? Color.notchAccent : Color.musicAccent)
             )
+            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .disabled(!music.isInstalled(source))
-        .opacity(music.isInstalled(source) ? 1 : 0.4)
+        .buttonStyle(PlayerPressButtonStyle())
+        .disabled(!installed)
+        .opacity(installed ? 1 : 0.35)
+    }
+
+    private func toggleMute() {
+        if activeVolume > 0 {
+            volumeBeforeMute = activeVolume
+            music.setVolume(0)
+        } else {
+            music.setVolume(max(0.25, volumeBeforeMute))
+        }
     }
 
     private var activePosition: Double {
@@ -238,36 +286,19 @@ struct AlbumArtworkView: View {
     var body: some View {
         ZStack {
             if showGlow, let artwork {
-                ambientGlow(artwork)
+                Image(nsImage: artwork)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .blur(radius: 12)
+                    .scaleEffect(1.06)
+                    .opacity(isPlaying ? 0.24 : 0.08)
+                    .offset(y: 3)
+                    .allowsHitTesting(false)
+                    .animation(.easeInOut(duration: 0.35), value: isPlaying)
             }
 
             mainArtwork
         }
-    }
-
-    @ViewBuilder
-    private func ambientGlow(_ image: NSImage) -> some View {
-        ZStack {
-            // Broad ambient colored wash matching the artwork colors
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .blur(radius: 20)
-                .scaleEffect(1.18)
-                .opacity(isPlaying ? 0.65 : 0.28)
-                .offset(y: 4)
-
-            // Radiant inner bloom
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .blur(radius: 10)
-                .scaleEffect(1.06)
-                .opacity(isPlaying ? 0.85 : 0.38)
-                .offset(y: 2)
-        }
-        .allowsHitTesting(false)
-        .animation(.easeInOut(duration: 0.35), value: isPlaying)
     }
 
     private var mainArtwork: some View {
@@ -278,10 +309,10 @@ struct AlbumArtworkView: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 ZStack {
-                    Color(red: 0.12, green: 0.12, blue: 0.14)
+                    Color.white.opacity(0.05)
                     Image(systemName: "music.note")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(Color.white.opacity(0.46))
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(Color.notchMuted)
                 }
             }
         }
@@ -290,16 +321,17 @@ struct AlbumArtworkView: View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.12), lineWidth: 0.7)
         )
-        .shadow(color: .black.opacity(showGlow ? 0.35 : 0.0), radius: 8, y: 4)
+        .shadow(color: .black.opacity(showGlow ? 0.32 : 0.0), radius: 6, y: 3)
     }
 }
 
 struct AudioWaveform: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let isPlaying: Bool
     var barCount = 6
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 0.1, paused: !isPlaying)) { context in
+        TimelineView(.animation(minimumInterval: 0.1, paused: !isPlaying || reduceMotion)) { context in
             HStack(spacing: 1.5) {
                 ForEach(0..<barCount, id: \.self) { index in
                     Capsule()
@@ -313,7 +345,7 @@ struct AudioWaveform: View {
     }
 
     private func barHeight(_ index: Int, at date: Date) -> CGFloat {
-        guard isPlaying else { return CGFloat([3, 5, 4, 6, 4, 3][index % 6]) }
+        guard isPlaying, !reduceMotion else { return CGFloat([3, 5, 4, 6, 4, 3][index % 6]) }
         let time = date.timeIntervalSinceReferenceDate
         let wave = abs(sin(time * (3.2 + Double(index) * 0.22) + Double(index) * 0.9))
         return 2.5 + CGFloat(wave) * 6.5
@@ -333,21 +365,21 @@ private struct PlayerControlButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(isActive ? activeColor : .white.opacity(0.86))
+                .foregroundStyle(isActive ? activeColor : (isHovering ? .white : .white.opacity(0.8)))
                 .frame(width: size, height: size)
                 .background(
                     Circle().fill(
                         isActive
                             ? activeColor.opacity(0.16)
-                            : Color.white.opacity(isHovering ? 0.13 : 0.08)
+                            : Color.white.opacity(isHovering ? 0.12 : 0.05)
                     )
                 )
                 .contentShape(Circle())
         }
         .buttonStyle(PlayerPressButtonStyle())
         .onHover { isHovering = $0 }
-        .animation(.easeOut(duration: 0.16), value: isHovering)
-        .animation(.easeOut(duration: 0.16), value: isActive)
+        .animation(.easeOut(duration: 0.14), value: isHovering)
+        .animation(.easeOut(duration: 0.14), value: isActive)
         .help(title)
         .accessibilityLabel(title)
     }
@@ -356,7 +388,7 @@ private struct PlayerControlButton: View {
 private struct PlayerPressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .scaleEffect(configuration.isPressed ? 0.93 : 1)
             .opacity(configuration.isPressed ? 0.82 : 1)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }

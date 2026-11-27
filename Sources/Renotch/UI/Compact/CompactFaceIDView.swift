@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CompactFaceIDView: View {
+     @Environment(\.accessibilityReduceMotion) private var reduceMotion
      let auth: AuthGlance
      @State private var isPulsing = false
      @State private var showCheck = false
@@ -52,12 +53,16 @@ struct CompactFaceIDView: View {
          }
          .frame(maxWidth: .infinity, maxHeight: .infinity)
          .onAppear {
-             withAnimation(.easeInOut(duration: 0.3).repeatCount(2, autoreverses: true)) {
-                 isPulsing = true
-             }
-             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                 withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
-                     showCheck = true
+             if reduceMotion {
+                 showCheck = auth.isSuccess
+             } else {
+                 withAnimation(.easeInOut(duration: 0.3).repeatCount(2, autoreverses: true)) {
+                     isPulsing = true
+                 }
+                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                     withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                         showCheck = true
+                     }
                  }
              }
          }

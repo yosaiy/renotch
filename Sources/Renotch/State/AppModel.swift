@@ -52,6 +52,7 @@ final class AppModel: ObservableObject {
     private var browserActivityCancellable: AnyCancellable?
     private var musicActivityCancellable: AnyCancellable?
     private var timerActivityCancellable: AnyCancellable?
+    private var timerActiveStateCancellable: AnyCancellable?
     private var activityGlanceCancellable: AnyCancellable?
     private var focusBlockerCancellable: AnyCancellable?
     private var modeBeforeFileDrop: NotchMode = .compact
@@ -94,6 +95,16 @@ final class AppModel: ObservableObject {
         timerActivityCancellable = timer.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
+        timerActiveStateCancellable = timer.$storedTimer
+            .map { $0 != nil }
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.objectWillChange.send()
+                    self?.onPanelConfigurationChanged?()
+                }
+            }
         focusBlockerCancellable = focusBlocker.objectWillChange.sink { [weak self] _ in
             self?.objectWillChange.send()
         }
@@ -163,20 +174,48 @@ final class AppModel: ObservableObject {
             return NSSize(width: settings.compactWidth, height: settings.compactHeight + hoverHeight)
         case .expanded:
             let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
-            if isShowingCodingSection {
-                return NSSize(
-                    width: max(
-                        settings.expandedWidth,
-                        NotchSettings.codingExpandedWidth,
-                        NotchSettings.expandedMinWidth
-                    ),
-                    height: max(settings.expandedHeight + notchHeightOffset, NotchSettings.codingExpandedHeight)
-                )
-            }
-            return NSSize(
-                width: max(settings.expandedWidth, NotchSettings.expandedMinWidth),
-                height: settings.expandedHeight + notchHeightOffset
+            let horizontalPadding = CGFloat(
+                settings.resolvedExpandedContentLeadingPadding
+                + settings.resolvedExpandedContentTrailingPadding
+                + 28
             )
+            let showsTopTabs = settings.resolvedHeaderNavigationStyle != .bottomDock
+            let headerMinContentWidth: CGFloat = {
+                if selectedSection == .welcome { return 390 }
+                var width: CGFloat = showsTopTabs ? 428 : 184
+                if timer.isActive {
+                    width += 76
+                }
+                return width
+            }()
+            let sectionMinContentWidth: CGFloat = {
+                switch selectedSection {
+                case .dashboard, .activity, .blocker:
+                    return 472
+                case .calendar:
+                    return 464
+                case .timer, .music, .shelf:
+                    return 456
+                case .todo:
+                    return 444
+                case .welcome:
+                    return 390
+                }
+            }()
+            let adaptiveMinWidth = max(headerMinContentWidth, sectionMinContentWidth) + horizontalPadding
+            let requiredWidth = max(
+                settings.expandedWidth,
+                NotchSettings.expandedMinWidth,
+                isShowingCodingSection ? NotchSettings.codingExpandedWidth : 0,
+                adaptiveMinWidth
+            )
+            let requiredHeight: CGFloat = {
+                if isShowingCodingSection {
+                    return max(settings.expandedHeight + notchHeightOffset, NotchSettings.codingExpandedHeight + notchHeightOffset)
+                }
+                return max(settings.expandedHeight + notchHeightOffset, 232 + notchHeightOffset)
+            }()
+            return NSSize(width: requiredWidth, height: requiredHeight)
         case .fileDrop, .success:
             return NSSize(width: NotchSettings.dragWidth, height: NotchSettings.dragHeight)
         case .focusTakeover:
@@ -272,7 +311,10 @@ final class AppModel: ObservableObject {
         }
         if let section { selectedSection = section }
         if pin { isPinned = true }
-        guard mode != .expanded else { return }
+        if mode == .expanded {
+            onPanelConfigurationChanged?()
+            return
+        }
         mode = .expanded
         activity.setRefreshInterval(4.0)
         onPanelConfigurationChanged?()
@@ -404,17 +446,26 @@ final class AppModel: ObservableObject {
         collapse(force: true)
     }
 
-    func startPomodoro(focusMinutes: Int? = nil, breakMinutes: Int? = nil) {
+    func startPomodoro(
+        focusMinutes: Int? = nil,
+        breakMinutes: Int? = nil,
+        autoAdvance: Bool? = nil
+    ) {
         let fMin = focusMinutes ?? timer.focusMinutes
         let bMin = breakMinutes ?? timer.breakMinutes
+        let shouldAutoAdvance = autoAdvance ?? timer.autoAdvance
         timer.startPomodoro(
             focusMinutes: fMin,
             breakMinutes: bMin,
-            autoAdvance: true,
+            autoAdvance: shouldAutoAdvance,
             notify: settings.timerNotificationsEnabled
         )
         isPinned = false
-        showMessage("Focus started · \(fMin)m (Break \(bMin)m next)")
+        showMessage(
+            shouldAutoAdvance
+                ? "Focus started · \(fMin)m (Break \(bMin)m next)"
+                : "Focus started · \(fMin)m"
+        )
         collapse(force: true)
     }
 

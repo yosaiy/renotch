@@ -98,88 +98,80 @@ struct CompactBrowserMediaView: View {
 struct ExpandedBrowserMediaView: View {
     let media: BrowserMediaActivity
     let artwork: NSImage?
+    @State private var isOpenHovered = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 13) {
-                ZStack {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 14) {
+                Group {
                     if let artwork {
+                        Image(nsImage: artwork)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
                         ZStack {
-                            Image(nsImage: artwork)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .blur(radius: 18)
-                                .scaleEffect(1.18)
-                                .opacity(media.isPlaying ? 0.65 : 0.28)
-                                .offset(y: 4)
-
-                            Image(nsImage: artwork)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .blur(radius: 9)
-                                .scaleEffect(1.06)
-                                .opacity(media.isPlaying ? 0.85 : 0.38)
-                                .offset(y: 2)
-                        }
-                        .frame(width: 104, height: 58)
-                        .allowsHitTesting(false)
-                        .animation(.easeInOut(duration: 0.35), value: media.isPlaying)
-                    }
-
-                    Group {
-                        if let artwork {
-                            Image(nsImage: artwork)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } else {
-                            ZStack {
-                                Color(red: 0.78, green: 0.05, blue: 0.08)
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
+                            Color.white.opacity(0.06)
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color.musicAccent)
                         }
                     }
-                    .frame(width: 104, height: 58)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.white.opacity(0.12), lineWidth: 0.7)
-                    }
-                    .shadow(color: .black.opacity(artwork != nil ? 0.35 : 0.0), radius: 6, y: 3)
+                }
+                .frame(width: 112, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 0.7)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 5) {
-                        Image(systemName: "play.rectangle.fill")
-                        Text("YOUTUBE")
-                            .tracking(0.8)
                         Circle()
-                            .fill(media.isPlaying ? Color.red : Color.white.opacity(0.35))
-                            .frame(width: 4, height: 4)
-                        Text(media.isPlaying ? "Playing" : "Paused")
+                            .fill(media.isPlaying ? Color.musicAccent : Color.notchMuted)
+                            .frame(width: 5, height: 5)
+                            .accessibilityHidden(true)
+                        Text("YouTube · \(media.isPlaying ? "Playing" : "Paused")")
+                            .font(.system(size: 9.5, weight: .medium))
+                            .foregroundStyle(media.isPlaying ? Color.musicAccent : Color.notchMuted)
                     }
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(media.isPlaying ? Color.red : Color.notchMuted)
 
                     Text(media.title)
-                        .font(.system(size: 12.5, weight: .semibold))
+                        .font(.system(size: 13.5, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(media.channel)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.notchMuted)
-                        .lineLimit(1)
 
-                    if let pageURL = media.pageURL {
-                        Button {
-                            NSWorkspace.shared.open(pageURL)
-                        } label: {
-                            Label("Open video", systemImage: "arrow.up.right")
-                                .font(.system(size: 8.5, weight: .semibold))
+                    HStack(spacing: 8) {
+                        Text(media.channel)
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundStyle(Color.notchMuted)
+                            .lineLimit(1)
+
+                        Spacer(minLength: 4)
+
+                        if let pageURL = media.pageURL {
+                            Button {
+                                NSWorkspace.shared.open(pageURL)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("Open video")
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 8, weight: .bold))
+                                }
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundStyle(isOpenHovered ? .white : .white.opacity(0.84))
+                                .padding(.horizontal, 8)
+                                .frame(height: 22)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(Color.white.opacity(isOpenHovered ? 0.14 : 0.08))
+                                )
+                                .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+                            .onHover { isOpenHovered = $0 }
+                            .animation(.easeOut(duration: 0.14), value: isOpenHovered)
+                            .accessibilityLabel("Open video in browser")
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white.opacity(0.82))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -190,20 +182,23 @@ struct ExpandedBrowserMediaView: View {
                     Text(formatted(media.position))
                     GeometryReader { proxy in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.1))
-                            Capsule().fill(Color.red).frame(width: proxy.size.width * progress)
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(Color.white.opacity(0.1))
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(Color.musicAccent)
+                                .frame(width: max(0, proxy.size.width * progress))
                         }
                     }
-                    .frame(height: 3)
+                    .frame(height: 3.5)
                     Text("−\(formatted(max(0, media.duration - media.position)))")
                 }
-                .font(.system(size: 8, weight: .medium, design: .rounded))
+                .font(.system(size: 9, weight: .medium, design: .rounded))
                 .foregroundStyle(Color.notchMuted)
                 .monospacedDigit()
             }
         }
-        .padding(.top, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     private func formatted(_ value: TimeInterval) -> String {
